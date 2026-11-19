@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>에이전트 대시보드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f4f2;
+  --surface-1: #fcfcfb;
+  --surface-2: #f0efec;
+  --border: #e2e1dc;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #7a7974;
+  --accent: #2a78d6;
+  --series-1: #2a78d6;   /* A안: categorical slot 1 */
+  --series-2: #eb6834;   /* B안: categorical slot 2 */
+  --grid: #e7e6e1;
+  --axis: #a9a8a2;
+  --sky: #38bdf8;        /* 작업 중 blink */
+  --sky-soft: rgba(56, 189, 248, .18);
+  --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --bg: #111110; --surface-1: #1a1a19; --surface-2: #232321; --border: #33332f;
+    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e86;
+    --accent: #3987e5; --series-1: #3987e5; --series-2: #d95926;
+    --grid: #2b2b28; --axis: #5c5b55; --sky-soft: rgba(56, 189, 248, .14);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111110; --surface-1: #1a1a19; --surface-2: #232321; --border: #33332f;
+  --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e86;
+  --accent: #3987e5; --series-1: #3987e5; --series-2: #d95926;
+  --grid: #2b2b28; --axis: #5c5b55; --sky-soft: rgba(56, 189, 248, .14);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text-primary);
+  font: 14px/1.5 "Noto Sans KR", system-ui, sans-serif;
+}
+.wrap { max-width: 1320px; margin: 0 auto; padding: 20px 16px 48px; }
+
+/* 헤더 */
+header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+h1 { font-size: 22px; margin: 0 0 2px; }
+.sub { color: var(--text-secondary); font-size: 13px; }
+.controls { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.run-msg { color: var(--text-secondary); font-size: 13px; margin-right: 6px; }
+button {
+  font: inherit; font-weight: 700; border-radius: 8px; padding: 9px 18px; cursor: pointer;
+  border: 1px solid transparent; display: inline-flex; align-items: center; gap: 6px;
+}
+button:disabled { opacity: .45; cursor: not-allowed; }
+.btn-run { background: var(--accent); color: #fff; }
+.btn-stop { background: var(--surface-1); color: var(--critical); border-color: var(--critical); }
+.btn-ghost { white-space: nowrap; flex: none; background: transparent; border-color: var(--border); color: var(--text-secondary); padding: 4px 10px; font-weight: 500; font-size: 12px; }
+.banner { display: none; background: var(--surface-1); border: 1px solid var(--critical); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+.banner code { font-family: var(--mono); background: var(--surface-2); padding: 1px 6px; border-radius: 4px; }
+
+/* 에이전트 카드 */
+.section-title { font-size: 15px; font-weight: 700; margin: 26px 0 10px; display: flex; align-items: center; gap: 8px; }
+.section-title .hint { font-weight: 400; color: var(--text-muted); font-size: 12px; }
+.agents { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1100px) { .agents { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .agents { grid-template-columns: 1fr; } }
+.card {
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+  display: flex; flex-direction: column; min-width: 0; position: relative;
+}
+.card.running { border-color: var(--sky); animation: blink 1.2s ease-in-out infinite; }
+@keyframes blink {
+  0%, 100% { box-shadow: 0 0 0 0 var(--sky-soft), 0 0 0 1px var(--sky); }
+  50% { box-shadow: 0 0 0 6px var(--sky-soft), 0 0 18px 2px rgba(56, 189, 248, .55); }
+}
+.card-head { display: flex; align-items: center; gap: 8px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--axis); flex: none; }
+.card.running .dot { background: var(--sky); animation: dot 1.2s ease-in-out infinite; }
+@keyframes dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .25; transform: scale(.75); } }
+@media (prefers-reduced-motion: reduce) { .card.running, .card.running .dot { animation-duration: 3s; } }
+.card h3 { margin: 0; font-size: 15px; font-family: var(--mono); }
+.pill { margin-left: auto; font-size: 12px; border-radius: 999px; padding: 2px 9px; background: var(--surface-2); color: var(--text-secondary); white-space: nowrap; }
+.pill.running { background: var(--sky-soft); color: var(--text-primary); border: 1px solid var(--sky); }
+.pill.done::before { content: "✓ "; color: var(--good); }
+.pill.error::before { content: "✕ "; color: var(--critical); }
+.pill.stopped::before { content: "■ "; color: var(--serious); }
+.role { color: var(--text-secondary); font-size: 12.5px; margin: 6px 0 2px; }
+.meta { color: var(--text-muted); font-size: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+.group-tag { font-size: 11px; color: var(--text-muted); border: 1px dashed var(--border); border-radius: 6px; padding: 0 6px; }
+.sublabel { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 12px 0 4px; display: flex; justify-content: space-between; }
+.feed {
+  height: 150px; overflow-y: auto; background: var(--surface-2); border-radius: 8px; padding: 6px 8px;
+  font: 11.5px/1.45 var(--mono); color: var(--text-secondary);
+}
+.feed .ev { padding: 1px 0; overflow-wrap: anywhere; }
+.feed .ev .t { color: var(--text-muted); margin-right: 4px; }
+.feed .ev.tool .k { color: var(--accent); }
+.feed .ev.warn .k, .feed .ev.error .k { color: var(--critical); }
+.feed .empty, .logs .empty { color: var(--text-muted); font-family: "Noto Sans KR", sans-serif; }
+.logs { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.log-item { border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; font-size: 12px; }
+.log-item.new { animation: flash 1.6s ease-out; }
+@keyframes flash { from { background: var(--sky-soft); } to { background: transparent; } }
+.log-top { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.log-top b { font-family: var(--mono); }
+.log-top .ts { color: var(--text-muted); margin-left: auto; }
+.status-chip { border-radius: 4px; padding: 0 5px; font-size: 11px; border: 1px solid var(--border); }
+.log-sum { color: var(--text-secondary); margin-top: 2px; }
+details summary { cursor: pointer; color: var(--accent); font-size: 11.5px; margin-top: 2px; }
+pre.json { white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.4 var(--mono); background: var(--surface-2); padding: 6px; border-radius: 6px; max-height: 260px; overflow: auto; margin: 4px 0 0; }
+
+/* 하단 패널 */
+.bottom { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 960px) { .bottom { grid-template-columns: 1fr; } }
+.panel { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
+.panel h2 { font-size: 15px; margin: 0; }
+.panel .desc { color: var(--text-muted); font-size: 12px; margin: 2px 0 10px; }
+.panel-head { display: flex; align-items: flex-start; gap: 8px; }
+.panel-head .btn-ghost { margin-left: auto; }
+.legend { display: flex; gap: 14px; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 4px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+#chart { position: relative; }
+#chart svg { width: 100%; height: auto; display: block; }
+#chart text { font-family: "Noto Sans KR", sans-serif; }
+.tooltip {
+  position: absolute; pointer-events: none; background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.12); display: none; min-width: 170px; z-index: 5;
+}
+.tooltip .tt-title { font-weight: 700; margin-bottom: 2px; }
+.tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; color: var(--text-secondary); }
+.tooltip .tt-row b { color: var(--text-primary); font-weight: 500; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--text-secondary); font-weight: 500; background: var(--surface-2); }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.findings { max-height: 380px; overflow-y: auto; }
+.sev { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-weight: 500; }
+.sev .ic { width: 16px; height: 16px; border-radius: 50%; display: inline-grid; place-items: center; color: #fff; font-size: 10px; font-weight: 700; }
+.filter { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.filter button { padding: 3px 10px; font-size: 12px; font-weight: 500; background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+.filter button.on { background: var(--surface-2); color: var(--text-primary); border-color: var(--axis); }
+.full-log { margin-top: 12px; }
+.full-log .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>에이전트 대시보드</h1>
+      <div class="sub" id="sub">playbook 기반 사업 타당성 분석 파이프라인</div>
+    </div>
+    <div class="controls">
+      <span class="run-msg" id="runMsg">서버 연결 중…</span>
+      <button class="btn-run" id="btnRun" disabled>▶ 실행</button>
+      <button class="btn-stop" id="btnStop" disabled>■ 중지</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner">
+    로컬 서버에 연결되지 않았습니다. 이 폴더에서 <code>python dashboard_server.py</code>를 실행한 뒤
+    <code>http://127.0.0.1:8765</code>로 접속하세요. (파일을 직접 열면 에이전트를 실행할 수 없습니다.)
+  </div>
+
+  <div class="section-title">에이전트 <span class="hint">실행 순서: 묶음 1(경쟁·자료, 동시 실행) → 묶음 2(수익모델) → 묶음 3(검토)</span></div>
+  <div class="agents" id="agents"></div>
+
+  <div class="section-title">결과</div>
+  <div class="bottom">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>시나리오별 월 영업손익</h2>
+          <div class="desc" id="chartDesc">엑셀 손익 시트 12행</div>
+        </div>
+        <button class="btn-ghost" id="btnTable">표로 보기</button>
+      </div>
+      <div class="legend"><span><i style="background:var(--series-1)"></i>A안</span><span><i style="background:var(--series-2)"></i>B안</span></div>
+      <div id="chart"><div class="tooltip" id="tt"></div></div>
+      <div id="chartTable" hidden></div>
+    </section>
+    <section class="panel">
+      <h2>검토 지적사항</h2>
+      <div class="desc" id="findDesc">reviewer 기록 기준</div>
+      <div class="filter" id="sevFilter"></div>
+      <div class="findings" id="findings"></div>
+    </section>
+  </div>
+
+  <section class="panel full-log">
+    <div class="panel-head"><div><h2>전체 run_log.jsonl</h2><div class="desc" id="logDesc">최근 기록이 위에 표시됩니다</div></div></div>
+    <div class="scroll" id="fullLog"></div>
+  </section>
+</div>
+
+<script>
+const ROLES = {
+  "competitor-analyzer": "경쟁사 분석 · 포지셔닝",
+  "researcher": "시장조사 · 자료 수집",
+  "model-simulator": "수익모델 계산",
+  "reviewer": "검토 및 심사",
+};
+const GROUP = { "competitor-analyzer": 1, "researcher": 1, "model-simulator": 2, "reviewer": 3 };
+const STATUS_KO = { idle: "대기", queued: "순서 대기", running: "작업 중", done: "완료", error: "오류", stopped: "중지됨" };
+const SEV = {
+  "치명": { color: "var(--critical)", icon: "!" },
+  "주의": { color: "var(--serious)", icon: "▲" },
+  "개선": { color: "var(--warning)", icon: "i" },
+};
+let last = null, seenRuns = new Set(), firstLoad = true, sevOn = "전체", showTable = false;
+const openDetails = new Set();
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function won(v) {
+  if (typeof v !== "number") return String(v ?? "-");
+  const s = v < 0 ? "−" : "", a = Math.abs(v);
+  if (a >= 1e8) return `${s}${(a / 1e8).toFixed(2)}억 원`;
+  if (a >= 1e4) return `${s}${Math.round(a / 1e4).toLocaleString("ko-KR")}만 원`;
+  return `${s}${Math.round(a).toLocaleString("ko-KR")}원`;
+}
+const full = (v) => (typeof v === "number" ? `${Math.round(v).toLocaleString("ko-KR")}원` : String(v ?? "-"));
+function elapsed(a) {
+  if (!a.started_at) return "";
+  const end = a.ended_at ? new Date(a.ended_at) : new Date();
+  const s = Math.max(0, Math.round((end - new Date(a.started_at)) / 1000));
+  return `${Math.floor(s / 60)}분 ${s % 60}초`;
+}
+
+async function api(path, method = "GET") {
+  const res = await fetch(path, { method, headers: method === "POST" ? { "X-Dashboard": "1" } : {} });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok && method === "GET") throw new Error(body.error || res.status);
+  return body;
+}
+
+async function poll() {
+  try {
+    const s = await api("/api/state");
+    $("banner").style.display = "none";
+    last = s;
+    render(s);
+  } catch (e) {
+    $("banner").style.display = "block";
+    $("runMsg").textContent = "서버 연결 안 됨";
+    $("btnRun").disabled = $("btnStop").disabled = true;
+  } finally {
+    setTimeout(poll, 1500);
+  }
+}
+
+function render(s) {
+  const st = s.state;
+  $("runMsg").textContent = st.message + (st.running && st.started_at ? ` · 시작 ${st.started_at.slice(11, 19)}` : "");
+  $("btnRun").disabled = st.running;
+  $("btnStop").disabled = !st.running || st.stop_requested;
+  const valid = s.log.filter((r) => !r._invalid);
+  const proj = valid.length ? valid[valid.length - 1].project : null;
+  if (proj) $("sub").textContent = `${proj} · ${valid[valid.length - 1].model_file}`;
+  renderAgents(s.agents, valid);
+  renderChart(s.chart);
+  renderFindings(s.findings);
+  renderFullLog(s.log);
+  valid.forEach((r) => seenRuns.add(r.run_id));
+  firstLoad = false;
+}
+
+function renderAgents(agents, logs) {
+  const box = $("agents");
+  agents.forEach((a) => {
+    let card = box.querySelector(`[data-agent="${a.agent}"]`);
+    if (!card) {
+      card = document.createElement("article");
+      card.className = "card";
+      card.dataset.agent = a.agent;
+      card.innerHTML = `
+        <div class="card-head"><span class="dot"></span><h3>${esc(a.agent)}</h3><span class="pill"></span></div>
+        <div class="role">${esc(ROLES[a.agent] || "")} — playbook ${esc((a.stage_name.match(/\(([^)]+)\)/) || [, a.stage + "단계"])[1])}</div>
+        <div class="meta"><span class="group-tag">묶음 ${GROUP[a.agent] || "-"}</span><span class="el"></span><span class="cost"></span></div>
+        <div class="sublabel"><span>진행 출력</span><span class="evn"></span></div>
+        <div class="feed"></div>
+        <div class="sublabel"><span>run_log</span><span class="logn"></span></div>
+        <div class="logs"></div>`;
+      box.appendChild(card);
+    }
+    card.classList.toggle("running", a.status === "running");
+    const pill = card.querySelector(".pill");
+    pill.className = `pill ${a.status}`;
+    pill.textContent = STATUS_KO[a.status] || a.status;
+    card.querySelector(".el").textContent = a.started_at ? `⏱ ${elapsed(a)}` : "";
+    card.querySelector(".cost").textContent = typeof a.cost_usd === "number" ? `$${a.cost_usd.toFixed(2)}` : "";
+
+    const feed = card.querySelector(".feed");
+    const atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 24;
+    feed.innerHTML = a.events.length
+      ? a.events.map((e) => `<div class="ev ${e.kind}"><span class="t">${e.t}</span><span class="k">${{ tool: "🔧", text: "💬", warn: "⚠", error: "✕", info: "•", raw: "·" }[e.kind] || "·"}</span> ${esc(e.text)}</div>`).join("")
+      : `<div class="empty">실행하면 도구 호출과 메시지가 여기에 실시간으로 표시됩니다.</div>`;
+    card.querySelector(".evn").textContent = a.events.length ? `${a.events.length}건` : "";
+    if (atBottom || a.status === "running") feed.scrollTop = feed.scrollHeight;
+
+    const mine = logs.filter((r) => r.agent === a.agent).slice().reverse();
+    card.querySelector(".logn").textContent = mine.length ? `${mine.length}건` : "";
+    card.querySelector(".logs").innerHTML = mine.length
+      ? mine.map(logItem).join("")
+      : `<div class="empty">아직 기록이 없습니다.</div>`;
+  });
+  bindDetails(box);
+}
+
+function logItem(r) {
+  const isNew = !firstLoad && !seenRuns.has(r.run_id);
+  const outs = (r.outputs || []).length, iss = (r.open_issues || []).length;
+  const fails = (r.checklist || []).filter((c) => c && c.result === "fail").length;
+  const passes = (r.checklist || []).filter((c) => c && c.result === "pass").length;
+  const key = `d-${r.run_id}`;
+  return `<div class="log-item${isNew ? " new" : ""}">
+    <div class="log-top"><b>${esc(r.run_id)}</b><span class="status-chip">${esc(r.status)}</span><span>${esc(r.stage)}단계</span><span class="ts">${esc((r.timestamp || "").slice(5, 16).replace("T", " "))}</span></div>
+    <div class="log-sum">결과 ${outs} · 체크 ✓${passes} ✕${fails} · 미해결 ${iss}${r.decision ? ` · 판정 ${esc(r.decision.result)}` : ""}</div>
+    ${r.next_step ? `<div class="log-sum">다음: ${esc(r.next_step)}</div>` : ""}
+    <details data-key="${key}"${openDetails.has(key) ? " open" : ""}><summary>JSON 보기</summary><pre class="json">${esc(JSON.stringify(r, null, 2))}</pre></details>
+  </div>`;
+}
+
+function bindDetails(root) {
+  root.querySelectorAll("details[data-key]").forEach((d) => {
+    d.ontoggle = () => (d.open ? openDetails.add(d.dataset.key) : openDetails.delete(d.dataset.key));
+  });
+}
+
+/* ---------- 막대그래프 ---------- */
+function niceTicks(min, max, n = 5) {
+  const span = max - min || 1, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((x) => span / x <= n) || 10 * mag;
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step, out = [];
+  for (let v = lo; v <= hi + step / 2; v += step) out.push(Math.round(v));
+  return out;
+}
+let chartKey = "";
+function renderChart(c) {
+  const host = $("chart");
+  if (!c || c.error || !c.bars) {
+    $("chartDesc").textContent = c && c.error ? `엑셀을 읽지 못했습니다: ${c.error}` : "엑셀 파일이 없습니다.";
+    return;
+  }
+  const key = JSON.stringify(c.bars);
+  if (key === chartKey) return;
+  chartKey = key;
+  $("chartDesc").textContent = `엑셀 ${c.sheet} 시트 B12:G12 (저장된 계산값) · 막대에 마우스를 올리면 손익분기가 보입니다`;
+  const scen = [...new Set(c.bars.map((b) => b.scenario))];
+  const alts = [...new Set(c.bars.map((b) => b.alternative))];
+  const vals = c.bars.map((b) => (typeof b.value === "number" ? b.value : 0));
+  const ticks = niceTicks(Math.min(0, ...vals), Math.max(0, ...vals));
+  const W = 640, H = 300, m = { l: 64, r: 12, t: 22, b: 34 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const y0 = ticks[0], y1 = ticks[ticks.length - 1];
+  const y = (v) => m.t + ih - ((v - y0) / (y1 - y0)) * ih;
+  const gw = iw / scen.length, bw = Math.min(56, (gw * 0.6) / alts.length), gap = 2;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="시나리오별 월 영업손익 막대그래프">`;
+  ticks.forEach((t) => {
+    svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="${t === 0 ? "var(--axis)" : "var(--grid)"}" stroke-width="${t === 0 ? 1.5 : 1}"/>`;
+    svg += `<text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="var(--text-muted)">${won(t).replace(" 원", "").replace("원", "")}</text>`;
+  });
+  scen.forEach((sc, si) => {
+    const gx = m.l + gw * si + gw / 2, total = alts.length * bw + (alts.length - 1) * gap;
+    svg += `<text x="${gx}" y="${H - 10}" text-anchor="middle" font-size="12" fill="var(--text-secondary)">${esc(sc)}</text>`;
+    alts.forEach((al, ai) => {
+      const b = c.bars.find((x) => x.scenario === sc && x.alternative === al);
+      if (!b || typeof b.value !== "number") return;
+      const x = gx - total / 2 + ai * (bw + gap), yv = y(b.value), yz = y(0);
+      const top = Math.min(yv, yz), h = Math.max(1, Math.abs(yz - yv)), r = Math.min(4, h, bw / 2);
+      const pos = b.value >= 0;
+      // 기준선에서 시작하고, 끝(값 쪽)만 4px 둥글게
+      const d = pos
+        ? `M${x},${yz} V${top + r} Q${x},${top} ${x + r},${top} H${x + bw - r} Q${x + bw},${top} ${x + bw},${top + r} V${yz} Z`
+        : `M${x},${yz} V${yz + h - r} Q${x},${yz + h} ${x + r},${yz + h} H${x + bw - r} Q${x + bw},${yz + h} ${x + bw},${yz + h - r} V${yz} Z`;
+      const fill = ai === 0 ? "var(--series-1)" : "var(--series-2)";
+      svg += `<path d="${d}" fill="${fill}"/>`;
+      svg += `<text x="${x + bw / 2}" y="${pos ? top - 5 : yz + h + 13}" text-anchor="middle" font-size="10.5" fill="var(--text-secondary)">${won(b.value)}</text>`;
+      svg += `<rect class="hit" x="${x - gap}" y="${m.t}" width="${bw + gap * 2}" height="${ih}" fill="transparent" data-i="${c.bars.indexOf(b)}"/>`;
+    });
+  });
+  svg += `</svg>`;
+  host.innerHTML = `<div class="tooltip" id="tt"></div>` + svg;
+  const tt = $("tt");
+  host.querySelectorAll(".hit").forEach((el) => {
+    el.addEventListener("mousemove", (ev) => {
+      const b = c.bars[+el.dataset.i], rect = host.getBoundingClientRect();
+      const be = typeof b.breakeven === "number" ? `${b.breakeven.toFixed(1)}건/일` : b.breakeven;
+      tt.innerHTML = `<div class="tt-title">${esc(b.label)}</div>
+        <div class="tt-row">월 영업손익 <b>${full(b.value)}</b></div>
+        <div class="tt-row">손익분기 일 주문 <b>${esc(be)}</b></div>
+        <div class="tt-row">셀 <b>손익!${esc(b.cell)}</b></div>`;
+      tt.style.display = "block";
+      const x = ev.clientX - rect.left + 14, yv = ev.clientY - rect.top - 10;
+      tt.style.left = Math.min(x, rect.width - 190) + "px";
+      tt.style.top = yv + "px";
+    });
+    el.addEventListener("mouseleave", () => (tt.style.display = "none"));
+  });
+  $("chartTable").innerHTML = `<table><thead><tr><th>대안·시나리오</th><th class="num">월 영업손익</th><th class="num">손익분기 일 주문</th><th>셀</th></tr></thead><tbody>${c.bars
+    .map((b) => `<tr><td>${esc(b.label)}</td><td class="num">${full(b.value)}</td><td class="num">${typeof b.breakeven === "number" ? b.breakeven.toFixed(1) + "건" : esc(b.breakeven)}</td><td>손익!${esc(b.cell)}</td></tr>`)
+    .join("")}</tbody></table>`;
+}
+$("btnTable").onclick = () => {
+  showTable = !showTable;
+  $("chartTable").hidden = !showTable;
+  $("btnTable").textContent = showTable ? "표 숨기기" : "표로 보기";
+};
+
+/* ---------- 지적사항 ---------- */
+function renderFindings(f) {
+  const items = (f && f.items) || [];
+  $("findDesc").textContent = f && f.source ? `출처: ${f.source}` : "아직 검토 기록이 없습니다. 실행하면 reviewer 결과가 여기에 표시됩니다.";
+  const counts = { 전체: items.length };
+  items.forEach((i) => (counts[i.severity] = (counts[i.severity] || 0) + 1));
+  $("sevFilter").innerHTML = ["전체", "치명", "주의", "개선"]
+    .map((k) => `<button data-sev="${k}" class="${sevOn === k ? "on" : ""}">${k} ${counts[k] || 0}</button>`).join("");
+  $("sevFilter").querySelectorAll("button").forEach((b) => (b.onclick = () => { sevOn = b.dataset.sev; renderFindings(last.findings); }));
+  const order = { 치명: 0, 주의: 1, 개선: 2 };
+  const shown = items.filter((i) => sevOn === "전체" || i.severity === sevOn)
+    .sort((a, b) => (order[a.severity] ?? 3) - (order[b.severity] ?? 3));
+  $("findings").innerHTML = shown.length
+    ? `<table><thead><tr><th>심각도</th><th>단계·항목</th><th>위치</th><th>문제 / 수정 제안</th></tr></thead><tbody>${shown
+        .map((i) => {
+          const s = SEV[i.severity] || { color: "var(--axis)", icon: "·" };
+          return `<tr><td><span class="sev"><span class="ic" style="background:${s.color}">${s.icon}</span>${esc(i.severity)}</span></td>
+            <td>${esc(i.stage)}</td><td>${esc(i.location)}</td>
+            <td>${esc(i.problem)}${i.suggestion ? `<div style="color:var(--text-muted);margin-top:2px">→ ${esc(i.suggestion)}</div>` : ""}</td></tr>`;
+        }).join("")}</tbody></table>`
+    : `<div class="empty" style="color:var(--text-muted)">표시할 지적사항이 없습니다.</div>`;
+}
+
+/* ---------- 전체 로그 ---------- */
+function renderFullLog(rows) {
+  $("logDesc").textContent = rows.length ? `총 ${rows.length}건 · 최근 기록이 위에 표시됩니다` : "run_log.jsonl이 아직 없습니다. 첫 실행이 끝나면 생성됩니다.";
+  const bad = rows.filter((r) => r._invalid).length;
+  if (bad) $("logDesc").textContent += ` · ⚠ 형식 오류 ${bad}줄`;
+  $("fullLog").innerHTML = rows.length
+    ? `<table><thead><tr><th>run_id</th><th>시각</th><th>단계</th><th>에이전트</th><th>상태</th><th>미해결</th><th>다음 단계</th></tr></thead><tbody>${rows.slice().reverse()
+        .map((r) => r._invalid
+          ? `<tr><td colspan="7" style="color:var(--critical)">⚠ ${r._line}번째 줄 형식 오류: ${esc(r.raw)}</td></tr>`
+          : `<tr><td><b>${esc(r.run_id)}</b></td><td>${esc((r.timestamp || "").replace("T", " ").slice(0, 19))}</td><td>${esc(r.stage)} ${esc(r.stage_name)}</td><td>${esc(r.agent)}</td><td>${esc(r.status)}</td><td class="num">${(r.open_issues || []).length}</td><td>${esc(r.next_step)}</td></tr>`)
+        .join("")}</tbody></table>`
+    : "";
+}
+
+$("btnRun").onclick = async () => {
+  if (!confirm("에이전트 4개를 순서대로 실행합니다. Claude 사용량(비용)이 발생합니다. 실행할까요?")) return;
+  $("btnRun").disabled = true;
+  const r = await api("/api/run", "POST");
+  $("runMsg").textContent = r.message || "";
+};
+$("btnStop").onclick = async () => {
+  $("btnStop").disabled = true;
+  const r = await api("/api/stop", "POST");
+  $("runMsg").textContent = r.message || "";
+};
+poll();
+</script>
+</body>
+</html>

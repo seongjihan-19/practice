@@ -1,0 +1,41 @@
+{
+  "project": "D마트 즉시배송 (예시)",
+  "model_file": "market_model_case_student.xlsx",
+  "step_timeout_sec": 900,
+  "groups": [
+    [
+      {
+        "agent": "competitor-analyzer",
+        "stage": 1,
+        "stage_name": "경쟁 분석·포지셔닝 (1~2단계)",
+        "allowed_tools": ["Read", "Grep", "Glob", "WebSearch", "WebFetch", "Bash(python:*)"],
+        "prompt": "playbook.md 1~2단계 기준으로 market_model_case_student.xlsx의 '경쟁비교'·'포지셔닝' 시트를 점검하라. [U] 미확인 항목 중 웹에서 확인할 수 있는 것을 최대 3개만 확인하고, 4단계로 넘길 선택 비율 근거를 정리하라. 파일은 수정하지 말고 제안만 하라."
+      },
+      {
+        "agent": "researcher",
+        "stage": 3,
+        "stage_name": "자료 수집 (3단계)",
+        "allowed_tools": ["Read", "Grep", "Glob", "WebSearch", "WebFetch", "Bash(python:*)"],
+        "prompt": "playbook.md 3단계 기준으로 market_model_case_student.xlsx의 '자료' 시트를 점검하라. 값·기준 시점·출처·URL 누락, 오래된 값, '추정' 값을 목록으로 만들고, 결과에 영향이 큰 항목 2개만 최신 값을 웹에서 확인하라. 파일은 수정하지 말고 제안만 하라."
+      }
+    ],
+    [
+      {
+        "agent": "model-simulator",
+        "stage": 7,
+        "stage_name": "가정~민감도 점검 (4~10단계)",
+        "allowed_tools": ["Read", "Grep", "Glob", "Bash(python:*)"],
+        "prompt": "playbook.md 4~10단계 기준으로 market_model_case_student.xlsx를 점검하라. 현재 값으로 A/B안 × 보수/기준/낙관 6개 열의 월 주문 수, 월 매출, 건당 피킹 후 공헌이익, 월 영업손익, 손익분기 일 주문 수를 셀 위치와 함께 보고하고, 각 단계 ③ 체크리스트를 수행하라. 파일은 수정하지 말고 제안만 하라."
+      }
+    ],
+    [
+      {
+        "agent": "reviewer",
+        "stage": 12,
+        "stage_name": "검토·심사 (12단계)",
+        "allowed_tools": ["Read", "Grep", "Glob", "Bash(python:*)"],
+        "prompt": "playbook.md 12단계 기준으로 market_model_case_student.xlsx와 run_log.jsonl의 앞선 기록을 검토하라. 모델 점검 체크리스트를 수행하고, 0~13단계 진행 현황과 지적 사항을 정리하라. 지적 사항은 RUN_LOG의 findings 배열에 넣어라."
+      }
+    ]
+  ]
+}

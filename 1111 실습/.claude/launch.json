@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "redteam-monitor",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["bm/monitor/redteam_tool.py", "serve", "--port", "8765"],
+      "port": 8765
+    }
+  ]
+}

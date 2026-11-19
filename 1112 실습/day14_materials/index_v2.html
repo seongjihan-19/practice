@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6efe4">
+<title>오늘의 매대판</title>
+<meta name="description" content="서문시장 야시장 매대 배치도에서 내 결제 수단으로 살 수 있는 매대 · 오늘 영업 여부 · 품절 메뉴를 한눈에 보는 모바일 매대판 (수업 예시 · 가상 데이터)">
+<style>
+  :root {
+    --bg: #f6efe4;
+    --paper: #fffaf2;
+    --ink: #2a2018;
+    --muted: #7a6a5b;
+    --line: #e2d5c3;
+    --accent: #c2410c;
+    --accent-ink: #fff;
+    --ok: #15803d;   --ok-bg: #dcf3e3;
+    --ng: #b91c1c;   --ng-bg: #fbe1dd;
+    --unk: #6b5e52;  --unk-bg: #ece3d6;
+    --dim: .38;
+    --shadow: 0 10px 30px rgba(60, 35, 10, .18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14110e; --paper: #1f1a15; --ink: #f3eadf; --muted: #ab9b8b; --line: #362d25;
+      --accent: #fb923c; --accent-ink: #2a1300;
+      --ok: #86efac; --ok-bg: rgba(134, 239, 172, .13);
+      --ng: #fca5a5; --ng-bg: rgba(252, 165, 165, .13);
+      --unk: #cbbcad; --unk-bg: rgba(203, 188, 173, .11);
+      --dim: .32; --shadow: 0 10px 30px rgba(0, 0, 0, .5);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    font-size: 16px; line-height: 1.5; word-break: keep-all;
+  }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 0 16px; }
+
+  /* 상단 */
+  header { padding: calc(16px + env(safe-area-inset-top)) 0 4px; }
+  .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .top p { margin: 0; color: var(--muted); font-size: 13px; }
+  h1 { margin: 0; font-size: 28px; letter-spacing: -.03em; line-height: 1.2; }
+  .market { display: inline-flex; align-items: center; gap: 8px; margin: 10px 0 0; padding: 6px 12px 6px 10px;
+    border-radius: 999px; background: var(--paper); border: 1px solid var(--line); font-size: 14px; font-weight: 600; }
+  .market i { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .market.live i { background: var(--ok); box-shadow: 0 0 0 4px var(--ok-bg); }
+  .market small { color: var(--muted); font-weight: 400; }
+
+  /* 지갑 */
+  .wallet { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 14px 0 10px; border-bottom: 1px solid var(--line); }
+  .wallet h2 { margin: 0 0 8px; font-size: 15px; }
+  .wallet h2 span { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .pays { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .pay-btn { min-height: 44px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--paper);
+    font-size: 14px; font-weight: 600; cursor: pointer; }
+  .pay-btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--muted); }
+  .legend li { display: flex; align-items: center; gap: 5px; }
+  .legend b { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+  .lg-ok { background: var(--ok-bg); border: 1.5px solid var(--ok); }
+  .lg-ng { background: var(--paper); border: 1.5px dashed var(--line); opacity: .7; }
+  .lg-unk { background: var(--unk-bg); border: 1.5px dashed var(--unk); }
+
+  /* 요약 */
+  .sum { margin: 14px 0 6px; font-size: 15px; }
+  .sum b { color: var(--accent); }
+  .sum small { display: block; color: var(--muted); font-size: 13px; }
+
+  /* 배치도 */
+  .aisle { margin: 14px 0 0; }
+  .aisle h3 { margin: 0 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .aisle h3::after { content: ""; flex: 1; border-top: 1px dashed var(--line); }
+  .row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stall {
+    position: relative; text-align: left; cursor: pointer;
+    min-height: 92px; padding: 10px 11px; border-radius: 14px;
+    background: var(--paper); border: 1.5px solid var(--line);
+    display: flex; flex-direction: column; gap: 2px; transition: opacity .2s, transform .1s;
+  }
+  .stall:active { transform: scale(.98); }
+  .stall .no { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .stall .nm { font-size: 15px; font-weight: 700; line-height: 1.3; }
+  .stall .meta { margin-top: auto; font-size: 12px; color: var(--muted); }
+  .stall .meta .so { color: var(--ng); font-weight: 600; }
+  .stall .badge { position: absolute; top: 9px; right: 9px; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; }
+  .stall.ok { background: var(--ok-bg); border-color: var(--ok); }
+  .stall.ok .badge { background: var(--ok); color: var(--paper); }
+  .stall.ng { opacity: var(--dim); }
+  .stall.unk { background: var(--unk-bg); border-style: dashed; border-color: var(--unk); }
+  .stall.unk .badge { background: var(--unk); color: var(--paper); }
+  .stall.closed { opacity: var(--dim); border-style: dashed; }
+  .stall.closed .badge { background: var(--line); color: var(--muted); }
+  .stall.noinput { border-style: dashed; }
+  .stall.noinput .badge { background: var(--line); color: var(--muted); }
+  .stall.hit { box-shadow: 0 0 0 3px var(--accent); }
+
+  .tools { display: flex; gap: 8px; margin: 18px 0 0; }
+  .tools input { flex: 1; min-width: 0; height: 44px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--paper);
+    color: var(--ink); padding: 0 12px; font: inherit; font-size: 15px; }
+  .tools input::placeholder { color: var(--muted); }
+
+  footer { margin: 28px 0 0; padding: 16px 0 calc(28px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  footer h3 { margin: 0 0 6px; font-size: 14px; color: var(--ink); }
+  footer ul { margin: 0 0 10px; padding-left: 18px; }
+
+  /* 바텀시트 */
+  .scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
+  .scrim.on { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 11;
+    max-width: 560px; margin: 0 auto; max-height: 86vh; overflow-y: auto;
+    background: var(--paper); border-radius: 22px 22px 0 0; box-shadow: var(--shadow);
+    padding: 8px 18px calc(18px + env(safe-area-inset-bottom));
+    transform: translateY(105%); transition: transform .25s ease;
+  }
+  .sheet.on { transform: none; }
+  .grab { width: 40px; height: 4px; border-radius: 4px; background: var(--line); margin: 4px auto 12px; }
+  .sh-head { display: flex; align-items: flex-start; gap: 10px; }
+  .sh-head > div { flex: 1; min-width: 0; }
+  .sh-head p { margin: 0; color: var(--muted); font-size: 13px; }
+  .sh-head h2 { margin: 0; font-size: 22px; line-height: 1.25; }
+  .x { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: transparent; cursor: pointer; font-size: 18px; }
+  .state { display: inline-block; margin: 10px 0 0; font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+  .state.open { color: var(--ok); background: var(--ok-bg); }
+  .state.closed { color: var(--ng); background: var(--ng-bg); }
+  .state.none { color: var(--unk); background: var(--unk-bg); }
+  .sec { margin: 16px 0 0; }
+  .sec h4 { margin: 0 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
+  .paylist { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .paylist li { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-radius: 10px; font-size: 14px; }
+  .paylist .y { background: var(--ok-bg); color: var(--ok); }
+  .paylist .n { background: var(--ng-bg); color: var(--ng); }
+  .paylist .n span:first-child { text-decoration: line-through; }
+  .paylist .u { background: var(--unk-bg); color: var(--unk); }
+  .paylist b { font-size: 13px; }
+  .quote { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--bg); font-size: 15px; }
+  .quote small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .menu { margin: 0; padding: 0; list-style: none; }
+  .menu li { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .menu li:last-child { border-bottom: 0; }
+  .menu .pr { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+  .menu .out .nm { color: var(--muted); text-decoration: line-through; }
+  .menu .out .pr::before { content: "품절 "; color: var(--ng); font-weight: 700; }
+  .ai { margin: 16px 0 0; padding: 8px 10px; border-radius: 8px; border: 1px dashed var(--line); font-size: 12px; color: var(--muted); }
+  .empty { margin: 12px 0 0; color: var(--muted); font-size: 15px; }
+  .btn { width: 100%; min-height: 48px; margin: 14px 0 0; border-radius: 12px; border: 1.5px solid var(--line); background: transparent; font-weight: 700; cursor: pointer; }
+  .btn.main { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .opts { display: grid; gap: 6px; }
+  .opts label { display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 12px; border: 1.5px solid var(--line); border-radius: 12px; cursor: pointer; }
+  .opts input { width: 18px; height: 18px; accent-color: var(--accent); }
+  textarea { width: 100%; min-height: 76px; margin-top: 8px; padding: 10px; border-radius: 12px; border: 1.5px solid var(--line);
+    background: var(--bg); color: var(--ink); font: inherit; font-size: 15px; resize: vertical; }
+  .warn { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+
+  .toast { position: fixed; z-index: 20; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom));
+    width: min(100% - 32px, 480px); transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+    padding: 12px 14px; border-radius: 12px; background: var(--ink); color: var(--bg); font-size: 14px; transition: .25s; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="top"><p>서문시장 야시장</p><p id="today"></p></div>
+    <h1>오늘의 매대판</h1>
+    <div class="market" id="market" role="status"><i></i><span id="marketText">확인 중</span></div>
+  </div>
+</header>
+
+<section class="wallet" aria-labelledby="walletTitle">
+  <div class="wrap">
+    <h2 id="walletTitle">내 지갑에 있는 것 <span>— 고르면 살 수 있는 매대가 초록으로 켜져요</span></h2>
+    <div class="pays" id="pays"></div>
+    <ul class="legend" aria-label="배치도 색 안내">
+      <li><b class="lg-ok"></b>살 수 있음</li>
+      <li><b class="lg-unk"></b>결제 정보 없음 · 물어보기</li>
+      <li><b class="lg-ng"></b>안 됨 · 오늘 쉼</li>
+    </ul>
+  </div>
+</section>
+
+<main class="wrap">
+  <p class="sum" id="sum" aria-live="polite"></p>
+  <div id="board"></div>
+  <div class="tools">
+    <input id="q" type="search" placeholder="메뉴로 찾기 (예: 호떡, 꼬치)" aria-label="메뉴로 매대 찾기" autocomplete="off">
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <h3>이 배치도를 읽는 법</h3>
+    <ul>
+      <li>매대 정보는 상인이 장사 전에 올린 사진 · 한마디를 AI가 정리하고, 상인이 미리보기에서 <b>‘맞음’</b>을 눌러야 게시됩니다. 매대마다 <b>“AI 정리 · 상인 입력 hh:mm 기준”</b>이 붙어요.</li>
+      <li>상인이 말하지 않은 항목은 AI가 채우지 않고 <b>정보 없음</b>으로 둡니다.</li>
+      <li>배치도는 실제 매대 위치 순서이며, 입력을 자주 하는 매대를 따로 앞에 두지 않습니다.</li>
+      <li>계좌번호 · 사진 속 손님 얼굴은 싣지 않습니다. 이체는 매대에서 직접 안내받으세요.</li>
+      <li>틀린 정보는 매대 상세의 <b>틀린 정보 신고</b>로 알려 주세요. 상인회 사무국이 확인하고 당일 고칩니다.</li>
+    </ul>
+    <p>수업 예시 · 가상 데이터 · 두 번째 시안(배치도형). 매대 · 메뉴 · 시각은 지어낸 값이며 신고는 실제로 전송되지 않습니다.</p>
+  </div>
+</footer>
+
+<div class="scrim" id="scrim"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle" aria-hidden="true">
+  <div class="grab"></div>
+  <div id="sheetBody"></div>
+</section>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* 수업 예시 · 가상 데이터 */
+const PAY = [['cash', '현금'], ['card', '카드'], ['transfer', '계좌이체'], ['pay', '간편결제']];
+const PAYNAME = Object.fromEntries(PAY);
+const AISLES = [['A', 'A줄 · 입구 쪽'], ['B', 'B줄 · 가운데'], ['C', 'C줄 · 안쪽']];
+
+// open: true 영업 / false 오늘 쉼 / null 입력 없음
+// pay 값: true 됨 / false 안 됨 / null 정보 없음 (상인이 말하지 않으면 비워 둠)
+const STALLS = [
+  { no: 'A-01', name: '진미 납작만두', open: true, at: '17:31', said: '납작만두 오늘 넉넉해요. 카드 · 이체 다 돼요.',
+    pay: { cash: true, card: true, transfer: true, pay: false }, menu: [['납작만두', 4000], ['비빔 납작만두', 6000], ['김밥', 3500]], sold: [] },
+  { no: 'A-02', name: '씨앗호떡 할매', open: true, at: '17:48', said: '카드 단말기 없어요. 현금 · 계좌이체만 받아요.',
+    pay: { cash: true, card: false, transfer: true, pay: false }, menu: [['씨앗호떡', 2000], ['꿀호떡', 1500], ['치즈호떡', 2500]], sold: ['치즈호떡'] },
+  { no: 'A-03', name: '불막창 골목집', open: true, at: '17:05', said: '대 사이즈는 준비 끝났어요.',
+    pay: { cash: true, card: true, transfer: true, pay: true }, menu: [['막창 (소)', 12000], ['막창 (대)', 20000], ['곱창볶음', 15000]], sold: ['막창 (대)'] },
+  { no: 'A-04', name: '바삭 닭강정', open: false, at: '16:55', said: '오늘은 쉽니다. 금요일에 다시 나와요.',
+    pay: { cash: true, card: true, transfer: false, pay: true }, menu: [['닭강정 컵', 5000], ['닭강정 반 마리', 10000]], sold: [] },
+  { no: 'B-01', name: '서문 떡볶이', open: true, at: '17:20', said: '카드 · 페이 돼요.',
+    pay: { cash: true, card: true, transfer: null, pay: true }, menu: [['떡볶이', 4000], ['순대', 4000], ['튀김 모둠', 5000]], sold: [] },
+  { no: 'B-02', name: '수제 어묵바', open: true, at: '17:39', said: '오늘은 현금만 받아요.',
+    pay: { cash: true, card: false, transfer: false, pay: false }, menu: [['꼬치 어묵', 1000], ['어묵탕', 5000]], sold: [] },
+  { no: 'B-03', name: '철판 오징어', open: null, at: null, said: null, pay: null, menu: [], sold: [] },
+  { no: 'B-04', name: '대왕 꼬치', open: true, at: '17:12', said: '양꼬치는 오늘 재료가 안 들어왔어요.',
+    pay: { cash: true, card: true, transfer: false, pay: true }, menu: [['소고기 꼬치', 6000], ['양꼬치', 7000], ['닭꼬치', 4000]], sold: ['양꼬치'] },
+  { no: 'C-01', name: '크림 붕어빵', open: true, at: '17:44', said: '현금이랑 이체 돼요.',
+    pay: { cash: true, card: false, transfer: true, pay: null }, menu: [['팥 붕어빵 3개', 2000], ['슈크림 붕어빵 3개', 2500]], sold: [] },
+  { no: 'C-02', name: '막걸리 빈대떡', open: true, at: '16:58', said: '결제는 뭐든 다 돼요.',
+    pay: { cash: true, card: true, transfer: true, pay: true }, menu: [['녹두 빈대떡', 8000], ['고기 빈대떡', 10000], ['생막걸리', 5000]], sold: ['고기 빈대떡'] },
+  { no: 'C-03', name: '과일 꼬치', open: true, at: '17:27', said: '현금 안 받아요. 카드 · 페이만 돼요.',
+    pay: { cash: false, card: true, transfer: false, pay: true }, menu: [['딸기 꼬치', 4000], ['샤인머스캣 꼬치', 5000], ['귤 꼬치', 3000]], sold: ['딸기 꼬치', '귤 꼬치'] },
+  { no: 'C-04', name: '찹쌀 꽈배기', open: false, at: '15:40', said: '오늘 사정이 있어 쉬어요.',
+    pay: { cash: true, card: true, transfer: true, pay: false }, menu: [['꽈배기 3개', 3000], ['팥도넛', 1500]], sold: [] }
+];
+
+const state = { wallet: new Set(), q: '' };
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const won = n => n.toLocaleString('ko-KR') + '원';
+
+/* 지갑 기준 판정: ok 살 수 있음 / unk 물어봐야 함 / ng 안 됨 */
+function verdict(s) {
+  if (s.open === null) return 'noinput';
+  if (s.open === false) return 'closed';
+  if (!state.wallet.size) return 'open';
+  const vals = [...state.wallet].map(k => s.pay[k]);
+  if (vals.includes(true)) return 'ok';
+  if (vals.includes(null)) return 'unk';
+  return 'ng';
+}
+const BADGE = { ok: '살 수 있음', unk: '물어보기', ng: '안 됨', closed: '오늘 쉼', noinput: '입력 없음', open: '' };
+
+function renderMarket() {
+  const now = new Date(), d = '일월화수목금토';
+  $('today').textContent = `${now.getMonth() + 1}월 ${now.getDate()}일 (${d[now.getDay()]})`;
+  const h = now.getHours() + now.getMinutes() / 60;
+  const live = h >= 18 && h < 23;
+  $('marketText').innerHTML = (live ? '지금 영업 중 · 23:00 마감' : h < 18 ? '오늘 영업 · 18:00 개장' : '오늘 영업 끝 · 내일 18:00')
+    + ' <small>상인회 공지 기준 (데모)</small>';
+  $('market').classList.toggle('live', live);
+}
+
+function renderPays() {
+  $('pays').innerHTML = PAY.map(([k, l]) =>
+    `<button class="pay-btn" type="button" data-k="${k}" aria-pressed="${state.wallet.has(k)}">${l}</button>`).join('');
+}
+
+function stallBtn(s) {
+  const v = verdict(s);
+  const hit = state.q && s.menu.some(m => m[0].includes(state.q)) ? ' hit' : '';
+  let meta;
+  if (v === 'noinput') meta = '오늘 상인 입력 전';
+  else if (v === 'closed') meta = '오늘 영업 안 함';
+  else meta = s.sold.length ? `<span class="so">품절 ${s.sold.length}</span> · 메뉴 ${s.menu.length}` : `메뉴 ${s.menu.length} · 품절 없음`;
+  const b = BADGE[v] ? `<span class="badge">${BADGE[v]}</span>` : '';
+  return `<button class="stall ${v}${hit}" type="button" data-no="${s.no}" aria-label="${s.no} ${esc(s.name)}, ${BADGE[v] || '오늘 영업'}">
+    ${b}<span class="no">${s.no}</span><span class="nm">${esc(s.name)}</span><span class="meta">${meta}</span></button>`;
+}
+
+function render() {
+  $('board').innerHTML = AISLES.map(([a, label]) =>
+    `<section class="aisle"><h3>${label}</h3><div class="row">${STALLS.filter(s => s.no[0] === a).map(stallBtn).join('')}</div></section>`
+  ).join('');
+
+  const open = STALLS.filter(s => s.open === true);
+  const c = { ok: 0, unk: 0 };
+  open.forEach(s => { const v = verdict(s); if (v in c) c[v]++; });
+  let html;
+  if (!state.wallet.size) {
+    html = `오늘 여는 매대 <b>${open.length}곳</b> / 전체 ${STALLS.length}곳<small>위에서 가진 결제 수단을 고르면 살 수 있는 곳만 켜져요.</small>`;
+  } else {
+    const names = [...state.wallet].map(k => PAYNAME[k]).join(' · ');
+    html = `${names}로 살 수 있는 매대 <b>${c.ok}곳</b>`
+      + `<small>${c.unk ? `결제 정보가 없는 ${c.unk}곳은 줄 서기 전에 물어봐 주세요. ` : ''}오늘 여는 매대 ${open.length}곳 기준</small>`;
+  }
+  if (state.q) {
+    const n = STALLS.filter(s => s.menu.some(m => m[0].includes(state.q))).length;
+    html += `<small>“${esc(state.q)}” 파는 매대 ${n}곳을 주황 테두리로 표시했어요.</small>`;
+  }
+  $('sum').innerHTML = html;
+}
+
+/* 바텀시트 */
+let current = null, lastFocus = null;
+function detail(s) {
+  const kind = s.open === true ? 'open' : s.open === false ? 'closed' : 'none';
+  const stateTxt = { open: '오늘 영업', closed: '오늘 쉼', none: '영업 정보 없음' }[kind];
+  let h = `<div class="sh-head"><div><p>${s.no}</p><h2 id="shTitle">${esc(s.name)}</h2></div>
+    <button class="x" type="button" data-close aria-label="닫기">✕</button></div>
+    <span class="state ${kind}">${stateTxt}</span>`;
+  if (s.open === null) {
+    h += `<p class="empty">오늘 상인 입력이 아직 없어요. 영업 여부와 결제 수단을 짐작해서 채우지 않았어요.</p>`;
+  } else {
+    if (s.said) h += `<div class="sec"><h4>상인 한마디</h4><p class="quote">“${esc(s.said)}”<small>상인이 직접 남긴 말</small></p></div>`;
+    h += `<div class="sec"><h4>결제 수단</h4><ul class="paylist">` + PAY.map(([k, l]) => {
+      const v = s.pay[k];
+      const [c, t] = v === true ? ['y', '✓ 됨'] : v === false ? ['n', '✕ 안 됨'] : ['u', '? 정보 없음'];
+      return `<li class="${c}"><span>${l}</span><b>${t}</b></li>`;
+    }).join('') + `</ul></div>`;
+    if (s.menu.length) h += `<div class="sec"><h4>메뉴 · 품절</h4><ul class="menu">` + s.menu.map(([n, p]) =>
+      `<li class="${s.sold.includes(n) ? 'out' : ''}"><span class="nm">${esc(n)}</span><span class="pr">${won(p)}</span></li>`).join('') + `</ul></div>`;
+  }
+  h += `<p class="ai">${s.at ? `AI 정리 · 상인 입력 ${s.at} 기준 · 상인 확인 후 게시` : '상인 입력 없음 — AI가 만든 정보가 없습니다'}</p>
+    <button class="btn" type="button" data-report>틀린 정보 신고</button>`;
+  return h;
+}
+function reportForm(s) {
+  return `<div class="sh-head"><div><p>${s.no} ${esc(s.name)}</p><h2 id="shTitle">틀린 정보 신고</h2></div>
+    <button class="x" type="button" data-close aria-label="닫기">✕</button></div>
+    <form id="rf"><div class="sec"><h4>현장에서 무엇이 달랐나요?</h4><div class="opts">
+      ${['결제 수단', '오늘 영업 여부', '품절 메뉴', '기타'].map((t, i) =>
+        `<label><input type="radio" name="kind" value="${t}" ${i ? '' : 'checked'}>${t}</label>`).join('')}
+    </div>
+    <textarea name="memo" maxlength="200" placeholder="예: 카드 된다고 나왔는데 현금만 받으셨어요 (선택)"></textarea>
+    <p class="warn">이름 · 전화번호 · 계좌번호는 적지 말아 주세요. 상인회 사무국이 확인하고 당일 고칩니다.</p></div>
+    <button class="btn main" type="submit">신고 보내기</button>
+    <button class="btn" type="button" data-back>돌아가기</button></form>`;
+}
+function openSheet(s, html) {
+  current = s;
+  if (!$('sheet').classList.contains('on')) lastFocus = document.activeElement;
+  $('sheetBody').innerHTML = html;
+  $('sheet').classList.add('on'); $('scrim').classList.add('on');
+  $('sheet').setAttribute('aria-hidden', 'false');
+  $('sheet').scrollTop = 0;
+  setTimeout(() => $('sheet').querySelector('.x').focus(), 50);
+}
+function closeSheet() {
+  $('sheet').classList.remove('on'); $('scrim').classList.remove('on');
+  $('sheet').setAttribute('aria-hidden', 'true');
+  current = null;
+  if (lastFocus) lastFocus.focus();
+}
+
+/* 이벤트 */
+$('pays').addEventListener('click', e => {
+  const b = e.target.closest('[data-k]'); if (!b) return;
+  const k = b.dataset.k;
+  state.wallet.has(k) ? state.wallet.delete(k) : state.wallet.add(k);
+  b.setAttribute('aria-pressed', state.wallet.has(k));
+  render();
+});
+$('board').addEventListener('click', e => {
+  const b = e.target.closest('[data-no]'); if (!b) return;
+  const s = STALLS.find(x => x.no === b.dataset.no);
+  openSheet(s, detail(s));
+});
+$('q').addEventListener('input', e => { state.q = e.target.value.trim(); render(); });
+$('scrim').addEventListener('click', closeSheet);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && current) closeSheet(); });
+$('sheet').addEventListener('click', e => {
+  if (e.target.closest('[data-close]')) closeSheet();
+  else if (e.target.closest('[data-report]')) openSheet(current, reportForm(current));
+  else if (e.target.closest('[data-back]')) openSheet(current, detail(current));
+});
+$('sheet').addEventListener('submit', e => {
+  e.preventDefault();
+  const kind = new FormData(e.target).get('kind');
+  const name = current.name;
+  closeSheet();
+  toast(`${name} · ${kind} 신고가 접수됐어요. 상인회 사무국이 확인하고 고칩니다. (데모 — 실제 전송 안 됨)`);
+});
+let tt;
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 3800); }
+
+renderMarket(); setInterval(renderMarket, 60000);
+renderPays(); render();
+</script>
+</body>
+</html>

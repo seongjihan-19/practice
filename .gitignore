@@ -1,0 +1,21 @@
+# 비밀키·환경변수 (예시 파일만 올림)
+.env
+.env.*
+!.env.example
+
+# 의존성·빌드 결과물
+node_modules/
+.next/
+dist/
+build/
+.vercel/
+
+# 파이썬
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db

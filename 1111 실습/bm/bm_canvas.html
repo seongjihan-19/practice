@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>야시장 매대판 BM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e9e6df; --paper:#fbfaf7; --ink:#1d1b18; --muted:#6b665d; --line:#d8d3c8;
+  --accent:#c2410c; --accent-soft:#fde7d9;
+  --ok:#166534; --ok-bg:#dcf2e3; --as:#9a3412; --as-bg:#fde4d2;
+  --hu:#1e40af; --hu-bg:#dde6fb; --cl:#6b21a8; --cl-bg:#ede0fa;
+  --block:#ffffff; --block-head:#f3efe7;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121110; --paper:#1c1b19; --ink:#efebe4; --muted:#a39d92; --line:#3a3732;
+    --accent:#fb923c; --accent-soft:#3b2416;
+    --ok:#86efac; --ok-bg:#143322; --as:#fdba74; --as-bg:#3d2414;
+    --hu:#93b4fb; --hu-bg:#1c2848; --cl:#d4a5fb; --cl-bg:#2e1d44;
+    --block:#242320; --block-head:#2c2a26;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121110; --paper:#1c1b19; --ink:#efebe4; --muted:#a39d92; --line:#3a3732;
+  --accent:#fb923c; --accent-soft:#3b2416;
+  --ok:#86efac; --ok-bg:#143322; --as:#fdba74; --as-bg:#3d2414;
+  --hu:#93b4fb; --hu-bg:#1c2848; --cl:#d4a5fb; --cl-bg:#2e1d44;
+  --block:#242320; --block-head:#2c2a26;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",system-ui,sans-serif}
+body{padding:24px 16px 48px}
+.deck{max-width:1600px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+.slide{
+  container-type:inline-size;
+  width:100%;aspect-ratio:16/9;background:var(--paper);
+  border-radius:10px;box-shadow:0 2px 14px rgba(0,0,0,.08);
+  overflow:hidden;position:relative;
+}
+.in{position:absolute;inset:0;padding:2.6cqw 3cqw 2.2cqw;display:flex;flex-direction:column;font-size:1cqw;line-height:1.45}
+.top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1.2cqw}
+.top h2{font-size:2.1cqw;font-weight:900;letter-spacing:-.02em}
+.top .no{font-size:.95cqw;color:var(--muted);font-weight:500}
+.kicker{color:var(--accent);font-weight:700;font-size:.95cqw;letter-spacing:.04em;margin-bottom:.3cqw}
+.foot{margin-top:auto;padding-top:.8cqw;font-size:.78cqw;color:var(--muted);display:flex;justify-content:space-between}
+
+.t{display:inline-block;font-size:.72em;font-weight:700;padding:.05em .45em;border-radius:.35em;vertical-align:.08em;white-space:nowrap}
+.ok{color:var(--ok);background:var(--ok-bg)}
+.as{color:var(--as);background:var(--as-bg)}
+.hu{color:var(--hu);background:var(--hu-bg)}
+.cl{color:var(--cl);background:var(--cl-bg)}
+.src{color:var(--muted);font-size:.85em}
+b{font-weight:700}
+.mi{font-weight:700;color:var(--accent)}
+
+/* cover */
+.cover .in{justify-content:center;padding:5cqw 6cqw}
+.cover h1{font-size:4.6cqw;font-weight:900;letter-spacing:-.03em;line-height:1.15}
+.cover .sub{font-size:1.55cqw;margin-top:1.4cqw;max-width:62cqw;color:var(--ink)}
+.cover .meta{margin-top:2.4cqw;display:flex;gap:2.4cqw;font-size:1cqw;color:var(--muted)}
+.cover .meta b{color:var(--ink);display:block;font-size:1.15cqw}
+.legend{margin-top:2.6cqw;display:grid;grid-template-columns:repeat(2,auto);gap:.6cqw 2.4cqw;justify-content:start;font-size:1cqw}
+.cover .band{position:absolute;right:0;top:0;bottom:0;width:22cqw;background:var(--accent-soft)}
+.cover .band span{position:absolute;bottom:3cqw;left:2.4cqw;right:2.4cqw;font-size:1cqw;color:var(--muted)}
+
+/* canvas */
+.canvas{flex:1;display:grid;gap:.5cqw;
+  grid-template-columns:repeat(10,1fr);
+  grid-template-rows:1fr 1fr .82fr .7fr;min-height:0}
+.slide.cv .in{padding:1.5cqw 2cqw 1.4cqw}
+.slide.cv .top{margin-bottom:.6cqw}
+.slide.cv .top h2{font-size:1.6cqw}
+.slide.cv .canvas{gap:.4cqw}
+.slide.cv .blk{padding:.5cqw .65cqw;font-size:.76cqw;line-height:1.36}
+.slide.cv .blk h3{font-size:.88cqw;margin-bottom:.25cqw}
+.slide.cv .blk .main{font-size:.86cqw;margin-bottom:.2cqw}
+.slide.cv .blk li{margin-bottom:.08cqw}
+.slide.cv .blk .ev{font-size:.66cqw;padding-top:.25cqw}
+.slide.cv .mini{font-size:.7cqw}
+.slide.cv .mini td,.slide.cv .mini th{padding:.08cqw .25cqw}
+.slide.cv .klist{grid-template-columns:auto 1fr auto 1fr;font-size:.74cqw;gap:.1cqw .4cqw}
+.slide.cv .big{font-size:1.3cqw}
+.blk{background:var(--block);border:1px solid var(--line);border-radius:.5cqw;padding:.75cqw .85cqw;display:flex;flex-direction:column;min-height:0;overflow:hidden;font-size:.86cqw;line-height:1.42}
+.blk h3{font-size:.98cqw;font-weight:900;display:flex;align-items:center;gap:.4cqw;margin-bottom:.4cqw}
+.blk h3 i{font-style:normal;font-size:.72cqw;font-weight:700;color:#fff;background:var(--accent);border-radius:50%;width:1.25cqw;height:1.25cqw;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.blk h3 small{font-weight:500;color:var(--muted);font-size:.72cqw}
+.blk .main{font-weight:700;font-size:.98cqw;margin-bottom:.35cqw;line-height:1.35}
+.blk ul{list-style:none}
+.blk li{padding-left:.8em;position:relative;margin-bottom:.18cqw}
+.blk li::before{content:"";position:absolute;left:.1em;top:.62em;width:.32em;height:.32em;border-radius:50%;background:var(--muted)}
+.blk .ev{margin-top:auto;padding-top:.4cqw;border-top:1px dashed var(--line);font-size:.74cqw;color:var(--muted)}
+.blk .ev b{color:var(--ink)}
+.kp{grid-column:1/3;grid-row:1/3}
+.ka{grid-column:3/5;grid-row:1/2}
+.kr{grid-column:3/5;grid-row:2/3}
+.vp{grid-column:5/7;grid-row:1/3;background:var(--accent-soft);border-color:transparent}
+.cr{grid-column:7/9;grid-row:1/2}
+.ch{grid-column:7/9;grid-row:2/3}
+.cs{grid-column:9/11;grid-row:1/3}
+.cost{grid-column:1/6;grid-row:3/4}
+.rev{grid-column:6/11;grid-row:3/4}
+.ax{grid-column:1/11;grid-row:4/5;background:var(--hu-bg);border-color:transparent}
+.ax h3 i{background:var(--hu)}
+.lanes{display:grid;grid-template-columns:repeat(4,1fr);gap:.6cqw;flex:1;min-height:0}
+.lane{background:var(--block);border-radius:.4cqw;padding:.45cqw .6cqw;display:flex;flex-direction:column;gap:.25cqw;font-size:.76cqw;line-height:1.35}
+.lane .ln{font-weight:900;font-size:.84cqw;display:flex;align-items:center;gap:.35cqw}
+.lane .ln .badge{font-size:.62cqw;padding:.05cqw .4cqw}
+.chips{display:flex;flex-wrap:wrap;gap:.2cqw}
+.chip{font-size:.68cqw;font-weight:700;padding:.05cqw .4cqw;border-radius:.3cqw;background:var(--block-head);border:1px solid var(--line);white-space:nowrap}
+.chip.new{border-style:dashed;background:transparent}
+.arrow{color:var(--hu);font-weight:900}
+.klist{display:grid;grid-template-columns:auto 1fr;gap:.12cqw .45cqw;font-size:.8cqw}
+.klist span:nth-child(odd){font-weight:700;color:var(--accent)}
+.slide.cv .lane{padding:.35cqw .5cqw;gap:.15cqw;font-size:.7cqw}
+.slide.cv .lane .ln{font-size:.78cqw}
+.slide.cv .chip{font-size:.62cqw}
+.mini{width:100%;border-collapse:collapse;font-size:.78cqw}
+.mini td,.mini th{padding:.16cqw .3cqw;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.mini th{color:var(--muted);font-weight:500}
+.big{font-size:1.5cqw;font-weight:900;letter-spacing:-.02em}
+
+/* generic tables */
+table.tb{width:100%;border-collapse:collapse;font-size:.84cqw}
+.tb th{background:var(--block-head);font-weight:700;text-align:left;padding:.35cqw .5cqw;border-bottom:1px solid var(--line)}
+.tb td{padding:.32cqw .5cqw;border-bottom:1px solid var(--line);vertical-align:top}
+.tb tr.hl td{background:var(--accent-soft);font-weight:700}
+.tb .num{text-align:right;font-variant-numeric:tabular-nums}
+.pass{color:var(--ok);font-weight:700}
+.fail{color:var(--muted)}
+
+.cols{flex:1;display:grid;gap:1.6cqw;min-height:0}
+.card{background:var(--block);border:1px solid var(--line);border-radius:.5cqw;padding:1cqw 1.1cqw;min-height:0;overflow:hidden}
+.card h4{font-size:1.05cqw;font-weight:900;margin-bottom:.6cqw}
+.note{font-size:.82cqw;color:var(--muted);margin-top:.5cqw}
+.bar{display:flex;align-items:center;gap:.6cqw;margin:.45cqw 0}
+.bar .lb{width:12cqw;font-size:.86cqw}
+.bar .tr{flex:1;height:1.3cqw;background:var(--block-head);border-radius:.3cqw;overflow:hidden}
+.bar .fl{height:100%;background:var(--accent);border-radius:.3cqw}
+.bar.dim .fl{background:var(--muted);opacity:.5}
+.bar .v{width:3.4cqw;text-align:right;font-weight:900;font-size:1cqw}
+
+/* AI matrix */
+.mx td,.mx th{text-align:center}
+.mx td:first-child,.mx th:first-child{text-align:left}
+.mx td{font-size:.78cqw}
+.sym{display:block;font-size:1.1cqw;font-weight:900;line-height:1.1}
+.s-full{color:var(--accent)} .s-half{color:var(--hu)} .s-no{color:var(--as)} .s-na{color:var(--line)}
+
+/* loops */
+.loops{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1cqw;min-height:0}
+.loop{background:var(--block);border:1px solid var(--line);border-radius:.5cqw;padding:.9cqw 1cqw;display:flex;flex-direction:column;min-height:0}
+.loop.first{border:2px solid var(--accent)}
+.loop h4{font-size:1.08cqw;font-weight:900;display:flex;align-items:center;gap:.5cqw;margin-bottom:.5cqw}
+.badge{font-size:.72cqw;font-weight:700;padding:.1cqw .5cqw;border-radius:1cqw;background:var(--accent);color:#fff}
+.badge.later{background:var(--block-head);color:var(--muted)}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:.7cqw;flex:1;min-height:0}
+.step{background:var(--block-head);border-radius:.4cqw;padding:.8cqw .8cqw;font-size:1cqw;line-height:1.45;position:relative}
+.step b{display:block;font-size:.85cqw;color:var(--accent);margin-bottom:.35cqw}
+.step:not(:last-child)::after{content:"→";position:absolute;right:-.35cqw;top:50%;transform:translate(50%,-50%);color:var(--accent);font-size:1cqw;font-weight:900;z-index:1}
+.loop .why{padding-top:.6cqw;font-size:.88cqw;color:var(--muted)}
+
+@media print{
+  @page{size:16in 9in;margin:0}
+  body{padding:0;background:#fff}
+  .deck{gap:0;max-width:none}
+  .slide{border-radius:0;box-shadow:none;break-after:page;width:16in;height:9in}
+}
+</style>
+</head>
+<body>
+<main class="deck">
+
+<!-- 1. 표지 -->
+<section class="slide cover">
+  <div class="band"><span>자료의 숫자와 기관은 모두 수업용 가상 설정이다 (ideas_top3.md). <b>확인값</b>은 "자료에 출처가 있다"는 뜻이지 현실 검증을 뜻하지 않는다.</span></div>
+  <div class="in">
+    <div class="kicker">BM 캔버스 v1 · 확정 (레드팀 검증 전)</div>
+    <h1>야시장<br>오늘의 매대판</h1>
+    <p class="sub">상인이 올린 사진 1장 <span class="t ok">확인값 ideas_top3.md</span> · 한마디로 AI가 <b>결제 수단 · 오늘 영업 여부 · 품절 메뉴</b>를 매대 카드로 정리해, 현금 없이 온 방문객이 줄 서기 전에 확인하게 한다.</p>
+    <div class="meta">
+      <div><b>대상</b>ideas_top3.md 1위 (기회 O1)</div>
+      <div><b>지불자</b>야시장 상인회(가상)</div>
+      <div><b>직접 줄이는 문제</b>P1 결제 수단 정보 없음</div>
+    </div>
+    <div class="legend">
+      <div><span class="t ok">확인값</span> 출처가 있는 숫자</div>
+      <div><span class="t as">가정값</span> 출처가 없는 숫자</div>
+      <div><span class="t hu">사람 결정</span> 검토에서 사람이 정함</div>
+      <div><span class="t cl">Claude 결정</span> 사람이 위임해 Claude가 정함</div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. 캔버스 -->
+<section class="slide cv">
+  <div class="in">
+    <div class="top"><h2>BM 캔버스 9칸</h2><span class="no">02 · 칸마다 아래에 근거</span></div>
+    <div class="canvas">
+
+      <div class="blk kp">
+        <h3><i>8</i>핵심 파트너</h3>
+        <div class="main">야시장 상인회(가상) <span class="t hu">사람 결정</span></div>
+        <ul>
+          <li>매대 80곳 <span class="t ok">확인값 valuechain_v1.md</span>의 자릿세를 걷고 운영일을 정함</li>
+          <li>상인회 운영 공지(D2) 보유</li>
+          <li><b>사무국</b>이 게시 전 확인 · 개인정보 가리기 · 신고 처리를 맡음 <span class="t cl">Claude 결정</span></li>
+          <li>사무국 인력 여유는 확인되지 않음 (가정)</li>
+        </ul>
+        <div class="ev"><b>근거</b> valuechain_v1.md · ideas_top3.md · 사무국 역할은 Claude 결정 · 인력 여유는 가정</div>
+      </div>
+
+      <div class="blk ka">
+        <h3><i>7</i>핵심 활동</h3>
+        <div class="klist">
+          <span>K1</span><span>상인 입력 받기 · 안내</span>
+          <span>K2</span><span>AI로 매대 카드 정리</span>
+          <span>K3</span><span>게시 전 확인 (사무국)</span>
+          <span>K4</span><span>개인정보 가리기</span>
+          <span>K5</span><span>정렬 기준 공개 · 관리</span>
+          <span>K6</span><span>신고 받아 고치기 (사무국)</span>
+          <span>K7</span><span>QR 안내판 설치 · 관리</span>
+          <span>K8</span><span>성공 신호 측정</span>
+        </div>
+        <div class="ev"><b>근거</b> ideas_top3.md · risk_check.md · painpoint_def.md · K6 · K7은 가정</div>
+      </div>
+
+      <div class="blk kr">
+        <h3><i>6</i>핵심 자원</h3>
+        <div class="main">매대 정보 카드 자동 정리 (AI 처리) <span class="t hu">사람 결정</span></div>
+        <ul>
+          <li>사진 · 한마디(음성 또는 글) → 결제 수단 · 영업 여부 · 품절 메뉴 추출</li>
+          <li>재료인 입력 기록(D5)은 서비스가 돌아야 생김</li>
+          <li>모델 · 도구는 <span class="mi">미정</span></li>
+        </ul>
+        <div class="ev"><b>근거</b> ideas_top3.md · AI 모델 선택은 가정</div>
+      </div>
+
+      <div class="blk vp">
+        <h3><i>2</i>가치 제안</h3>
+        <div class="main" style="font-size:1.15cqw">결제 수단 · 오늘 영업 여부 · 품절 메뉴를 <u>매대 카드 한 화면</u>으로 <span class="t hu">사람 결정</span></div>
+        <ul>
+          <li><b>결제 수단</b> — 줄 서기 전에 알아 다시 줄 서지 않음 (J1)</li>
+          <li><b>오늘 영업 여부</b> — 그 매대가 오늘 여는지</li>
+          <li><b>품절 메뉴</b> — 상인이 올린 품절 정보</li>
+        </ul>
+        <table class="mini" style="margin-top:.5cqw">
+          <tr><th>교차 확인</th><th>P1</th><th>P2</th><th>P3</th></tr>
+          <tr><td>줄이는 정도</td><td><b>직접</b></td><td>부분</td><td>부분</td></tr>
+        </table>
+        <ul style="margin-top:.4cqw">
+          <li>P1 점수 60 <span class="t ok">확인값 painpoint_def.md</span></li>
+          <li>상인회 지불 의향 확인 (설문)</li>
+        </ul>
+        <div class="ev"><b>근거</b> ideas_top3.md · jtbd.md · painpoint_def.md · 상인회 설문조사(사람 전달)</div>
+      </div>
+
+      <div class="blk cr">
+        <h3><i>4</i>고객 관계</h3>
+        <div class="main">틀린 정보를 신고하면 받아서 고쳐 줌 <span class="t hu">사람 결정</span></div>
+        <ul>
+          <li>확인 · 수정 주체: <b>상인회 사무국</b> <span class="t cl">Claude 결정</span> — 자료 표기는 <span class="mi">미정</span></li>
+          <li>카드에 "AI 정리 · 상인 입력 hh:mm 기준" 표시</li>
+        </ul>
+        <div class="ev"><b>근거</b> risk_check.md · ideas_top3.md · jtbd.md · 신고 방식은 가정</div>
+      </div>
+
+      <div class="blk ch">
+        <h3><i>3</i>채널</h3>
+        <div class="main">야시장 입구 · 매대 앞 QR 안내판 <span class="t hu">사람 결정</span></div>
+        <ul>
+          <li>매대 앞 QR은 J1의 "줄 서기 전에"와 시점이 맞음</li>
+          <li>두 QR 모두 <b>도착한 뒤</b> 보게 됨</li>
+        </ul>
+        <div class="ev"><b>근거</b> 가정 (사람 결정) · 성공 신호는 ideas_top3.md</div>
+      </div>
+
+      <div class="blk cs">
+        <h3><i>1</i>고객 세그먼트</h3>
+        <div class="main">현금 없이 온 방문객 <span class="t hu">사람 결정</span></div>
+        <ul>
+          <li>서문시장 야시장 식품 구매자 중 현금 없이 온 사람 (J2)</li>
+          <li>매대마다 결제 수단이 달라 다시 줄 서거나 포기 (P1)</li>
+        </ul>
+        <div class="main" style="margin-top:.6cqw">지불자 — 야시장 상인회 <span class="t hu">사람 결정</span></div>
+        <ul>
+          <li>매대 80곳 <span class="t ok">확인값 valuechain_v1.md</span></li>
+          <li>방문객은 무료 정보에 익숙해 돈 낼 이유가 약함</li>
+        </ul>
+        <div class="ev"><b>근거</b> jtbd.md · painpoint_def.md · valuechain_v1.md</div>
+      </div>
+
+      <div class="blk cost">
+        <h3><i>9</i>비용 구조 <small>금액은 모두 미정</small></h3>
+        <table class="mini">
+          <tr><th>비용</th><th>생기는 활동</th><th>결정</th><th>금액</th></tr>
+          <tr><td>상인 입력 안내 인건비 (상인 80곳 <span class="t ok">확인값 valuechain_v1.md</span>)</td><td>K1</td><td><span class="t hu">사람</span></td><td class="mi">미정</td></tr>
+          <tr><td>게시 전 확인 · 신고 처리 인건비 (사무국)</td><td>K3 · K4 · K6</td><td><span class="t hu">사람</span>+<span class="t cl">Claude</span></td><td class="mi">미정</td></tr>
+          <tr><td>AI 처리 비용</td><td>K2</td><td><span class="t cl">Claude</span></td><td class="mi">미정</td></tr>
+          <tr><td>QR 안내판 제작 · 관리비</td><td>K7</td><td><span class="t cl">Claude</span></td><td class="mi">미정</td></tr>
+        </table>
+        <div class="ev"><b>근거</b> 가정 (사람 결정 · Claude 결정) · 상인 수는 valuechain_v1.md</div>
+      </div>
+
+      <div class="blk rev">
+        <h3><i>5</i>수익원 <small>후보 R1 월 구독료 · revenue_options.md</small></h3>
+        <div style="display:flex;gap:1.4cqw;align-items:flex-start">
+          <div style="flex:none">
+            <div class="big">월 40만 원 <span class="t as">가정값</span></div>
+            <div class="src">범위 월 40만 ~ 80만 원 <span class="t as">가정값</span></div>
+          </div>
+          <ul style="flex:1">
+            <li>매대 1곳당 월 5천 원 <span class="t ok">확인값 상인회 설문 · 사람 전달</span> <span class="t cl">Claude 결정</span> × 매대 80곳 <span class="t ok">확인값 valuechain_v1.md</span></li>
+            <li>지불 의향 월 5천 ~ 1만 원 <span class="t ok">확인값 상인회 설문 · 사람 전달</span></li>
+            <li>80곳 <b>모두</b>에 낸다는 것은 미확인 → 합계는 가정값 · 홍보 예산은 <span class="mi">확인하지 않음</span></li>
+          </ul>
+        </div>
+        <div class="ev"><b>근거</b> 상인회 설문조사(사람 전달) · valuechain_v1.md · revenue_options.md · 80곳 전체 적용은 가정</div>
+      </div>
+
+      <div class="blk ax">
+        <h3><i>AX</i>학습 루프 데이터 흐름 <small>데이터 원천 → 루프 → 개선 → 반영되는 칸 · 실선 칩 = 자료에 있는 원천(D1~D5), 점선 칩 = 운영하며 새로 생기는 데이터(가정)</small></h3>
+        <div class="lanes">
+          <div class="lane">
+            <div class="ln"><span class="badge">먼저</span>① 정확도</div>
+            <div class="chips"><span class="chip">D5 매대 정보 입력</span><span class="chip">D2 상인회 공지</span><span class="chip new">수정 전/후 기록</span><span class="chip new">신고 기록</span></div>
+            <div><span class="arrow">→</span> K2 AI 추출 방식 개선 · K3 공지 대조</div>
+            <div><span class="arrow">→</span> <b>6 핵심 자원</b> 정확도 ↑ · <b>9 비용</b> 확인 인건비 ↓</div>
+          </div>
+          <div class="lane">
+            <div class="ln"><span class="badge">먼저</span>③ 상인 참여</div>
+            <div class="chips"><span class="chip">D5 매대 정보 입력</span><span class="chip new">입력 여부 · 시각</span></div>
+            <div><span class="arrow">→</span> K1 미입력 매대 알림 · 입력 안내</div>
+            <div><span class="arrow">→</span> <b>6 핵심 자원</b> D5 공급 유지 → ① ② ④ 모두의 재료</div>
+          </div>
+          <div class="lane">
+            <div class="ln"><span class="badge later">나중</span>② 방문객 가치</div>
+            <div class="chips"><span class="chip">D1 리뷰 아카이브</span><span class="chip new">QR 열람 기록</span></div>
+            <div><span class="arrow">→</span> K8 리뷰 태그 분류(O8) · 화면 개선</div>
+            <div><span class="arrow">→</span> <b>2 가치 제안</b> P1 결제 실패 언급 ↓ · <b>3 채널</b> 열람 확인</div>
+          </div>
+          <div class="lane">
+            <div class="ln"><span class="badge later">나중</span>④ 확장</div>
+            <div class="chips"><span class="chip">누적 D5</span><span class="chip">D4 방문객 수</span></div>
+            <div><span class="arrow">→</span> 3위 O3 대기 · 품절 예측 (추정 표시)</div>
+            <div><span class="arrow">→</span> <b>2 가치 제안</b> P3까지 · <b>5 수익원</b> 상인회 리포트(R5)</div>
+          </div>
+        </div>
+        <div class="ev"><b>근거</b> ideas_top3.md(D2 · D4 · D5, O3) · opportunity_matrix.csv(D1, O8) · bm_canvas.md E · 점선 칩 데이터와 반영 경로는 가정 · D3 외부 운영 정보는 2위 전용이라 제외</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- 3. 선택 근거 -->
+<section class="slide">
+  <div class="in">
+    <div class="top"><h2>왜 이 아이디어인가</h2><span class="no">03 · 선택 근거</span></div>
+    <div class="cols" style="grid-template-columns:.9fr 1.35fr">
+      <div style="display:flex;flex-direction:column;gap:1cqw;min-height:0">
+        <div class="card">
+          <h4>① 문제 — 페인포인트 점수 <span class="t ok">확인값 painpoint_def.md</span></h4>
+          <div class="bar"><span class="lb"><b>P1</b> 결제 수단 정보 없음</span><span class="tr"><span class="fl" style="width:100%;display:block"></span></span><span class="v">60</span></div>
+          <div class="bar dim"><span class="lb">P2 운영일 · 시간 불일치</span><span class="tr"><span class="fl" style="width:60%;display:block"></span></span><span class="v">36</span></div>
+          <div class="bar dim"><span class="lb">P3 품절 · 대기 정보 없음</span><span class="tr"><span class="fl" style="width:53.3%;display:block"></span></span><span class="v">32</span></div>
+          <p class="note">빈도 × 강도 × 해결 가능성. VOC 300건 <span class="t ok">확인값 painpoint_def.md</span> 기준. P1만 해결 가능성 5 <span class="t ok">확인값 painpoint_def.md</span>.</p>
+        </div>
+        <div class="card">
+          <h4>② Top 3 중 1위인 이유</h4>
+          <ul style="list-style:none;font-size:.86cqw;display:flex;flex-direction:column;gap:.35cqw">
+            <li><b>1위 O1</b> — 합 8.5 <span class="t ok">확인값 ideas_top3.md</span>으로 최고, P1을 직접 줄임, 11/16 <span class="t ok">확인값 ideas_top3.md</span> MVP 화면 하나</li>
+            <li><b>2위 O2</b> — 지도 앱 약관 <span class="mi">확인 전</span>이라 한 단계 내림</li>
+            <li><b>3위 O3</b> — 1위의 입력 기록(D5)이 쌓여야 가능</li>
+          </ul>
+          <p class="note">근거: ideas_top3.md · risk_check.md</p>
+        </div>
+        <div class="card">
+          <h4>③ O1 리스크 점검</h4>
+          <table class="tb">
+            <tr><td>개인정보</td><td>조건부 — 얼굴 · 계좌번호 가림</td></tr>
+            <tr><td>저작권</td><td>해당 없음</td></tr>
+            <tr><td>편향</td><td>조건부 — 정렬 기준 공개</td></tr>
+            <tr class="hl"><td>책임 소재</td><td>자료 표기 미정 → 사무국 <span class="t cl">Claude 결정</span></td></tr>
+          </table>
+          <p class="note">근거: risk_check.md</p>
+        </div>
+      </div>
+      <div class="card">
+        <h4>④ 기회 10개 — 임팩트 · 실현성 <b>모두 3.5 <span class="t ok">확인값 risk_check.md</span> 이상</b>만 통과</h4>
+        <table class="tb">
+          <tr><th>기회</th><th>내용</th><th class="num">임팩트 <span class="t ok">확인값</span></th><th class="num">실현성 <span class="t ok">확인값</span></th><th class="num">합 <span class="t ok">확인값</span></th><th>판정</th></tr>
+          <tr class="hl"><td>O1</td><td>사진 · 한마디 → 매대 카드</td><td class="num">4.5</td><td class="num">4.0</td><td class="num">8.5</td><td class="pass">1위</td></tr>
+          <tr><td>O2</td><td>외부 운영 정보 대조</td><td class="num">4.3</td><td class="num">3.5</td><td class="num">7.8</td><td class="pass">2위</td></tr>
+          <tr><td>O3</td><td>대기 · 품절 시각 추정</td><td class="num">4.0</td><td class="num">3.5</td><td class="num">7.5</td><td class="pass">3위</td></tr>
+          <tr><td>O4</td><td>다국어 운영 안내문</td><td class="num">3.3</td><td class="num">4.5</td><td class="num">7.8</td><td class="fail">임팩트 미달</td></tr>
+          <tr><td>O5</td><td>결제 수단별 동선 추천</td><td class="num">3.8</td><td class="num">3.3</td><td class="num">7.1</td><td class="fail">실현성 미달</td></tr>
+          <tr><td>O6</td><td>줄 짧은 대체 매대 추천</td><td class="num">3.5</td><td class="num">3.0</td><td class="num">6.5</td><td class="fail">실현성 미달</td></tr>
+          <tr><td>O7</td><td>요일 · 날씨별 방문객 추정</td><td class="num">3.5</td><td class="num">2.8</td><td class="num">6.3</td><td class="fail">실현성 미달</td></tr>
+          <tr><td>O8</td><td>리뷰 태그 주간 요약</td><td class="num">3.0</td><td class="num">4.5</td><td class="num">7.5</td><td class="fail">임팩트 미달</td></tr>
+          <tr><td>O9</td><td>리뷰 답글 초안</td><td class="num">2.5</td><td class="num">4.0</td><td class="num">6.5</td><td class="fail">임팩트 미달</td></tr>
+          <tr><td>O10</td><td>간편결제 가입 대행</td><td class="num">3.8</td><td class="num">1.5</td><td class="num">5.3</td><td class="fail">실현성 미달</td></tr>
+        </table>
+        <p class="note">근거: opportunity_matrix.csv · risk_check.md. 합은 O1만 자료에 있고 나머지는 두 확인값을 더한 값. O4는 합이 2위와 같지만 임팩트가 기준에 못 미침.</p>
+      </div>
+    </div>
+    <div class="foot"><span>자료: ax/ · painpoint/ · valuechain/</span><span>야시장 오늘의 매대판 · BM v1</span></div>
+  </div>
+</section>
+
+<!-- 4. AI 역할 -->
+<section class="slide">
+  <div class="in">
+    <div class="top"><h2>AI가 맡는 핵심 활동</h2><span class="no">04 · K2만 정해짐, 나머지는 후보</span></div>
+    <div class="cols" style="grid-template-columns:1.7fr 1fr">
+      <div class="card">
+        <table class="tb mx">
+          <tr><th>핵심 활동</th><th>자동화</th><th>생성</th><th>예측</th><th>추천</th><th>에이전트</th></tr>
+          <tr><td>K1 상인 입력 · 안내</td><td><span class="sym s-na">—</span></td><td><span class="sym s-half">◐</span>안내문</td><td><span class="sym s-na">—</span></td><td><span class="sym s-na">—</span></td><td><span class="sym s-half">◐</span>미입력 알림</td></tr>
+          <tr class="hl"><td>K2 매대 카드 정리</td><td><span class="sym s-full">●</span>정보 추출</td><td><span class="sym s-full">●</span>카드 문장</td><td><span class="sym s-half">◐</span>품절 예상</td><td><span class="sym s-na">—</span></td><td><span class="sym s-na">—</span></td></tr>
+          <tr><td>K3 게시 전 확인</td><td><span class="sym s-half">◐</span>불확실 표시</td><td><span class="sym s-na">—</span></td><td><span class="sym s-half">◐</span>오류 가능성 순서</td><td><span class="sym s-na">—</span></td><td><span class="sym s-half">◐</span>공지(D2) 대조</td></tr>
+          <tr><td>K4 개인정보 가리기</td><td><span class="sym s-full">●</span>얼굴 · 계좌 가림</td><td><span class="sym s-na">—</span></td><td><span class="sym s-na">—</span></td><td><span class="sym s-na">—</span></td><td><span class="sym s-na">—</span></td></tr>
+          <tr><td>K5 정렬 기준</td><td><span class="sym s-na">—</span></td><td><span class="sym s-half">◐</span>기준 안내문</td><td><span class="sym s-na">—</span></td><td><span class="sym s-no">✕</span>맞춤 정렬</td><td><span class="sym s-na">—</span></td></tr>
+          <tr><td>K6 신고 처리</td><td><span class="sym s-half">◐</span>신고 분류</td><td><span class="sym s-half">◐</span>수정안 초안</td><td><span class="sym s-na">—</span></td><td><span class="sym s-na">—</span></td><td><span class="sym s-half">◐</span>상인 확인 요청</td></tr>
+          <tr><td>K7 QR 안내판</td><td><span class="sym s-na">—</span></td><td><span class="sym s-half">◐</span>문구 · 다국어</td><td><span class="sym s-na">—</span></td><td><span class="sym s-na">—</span></td><td><span class="sym s-na">—</span></td></tr>
+          <tr><td>K8 성공 신호 측정</td><td><span class="sym s-full">●</span>리뷰 태그 분류</td><td><span class="sym s-full">●</span>주간 요약</td><td><span class="sym s-half">◐</span>추이</td><td><span class="sym s-na">—</span></td><td><span class="sym s-na">—</span></td></tr>
+        </table>
+        <p class="note"><span class="s-full">●</span> 대체(사람은 확인만) · <span class="s-half">◐</span> 보조 · <span class="s-no">✕</span> 리스크 조건과 충돌 · — 해당 없음. 근거: opportunity_matrix.csv · ideas_top3.md · risk_check.md · painpoint_def.md · 자료에 없는 적용은 가정</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1cqw">
+        <div class="card"><h4>대부분 대체 — K2 · K4 · K8</h4><p style="font-size:.88cqw">K2만 자료에 정해짐(ideas_top3.md). K8은 기회 O8과 같고 실현성 4.5 <span class="t ok">확인값 opportunity_matrix.csv</span>.</p></div>
+        <div class="card"><h4>추천은 쓸 곳이 거의 없다</h4><p style="font-size:.88cqw">들어갈 자리가 정렬(K5)인데 "입력을 자주 하는 매대만 눈에 띄지 않게" 조건과 부딪힌다 (risk_check.md).</p></div>
+        <div class="card"><h4>최종 승인은 사람</h4><p style="font-size:.88cqw">에이전트는 모두 승인 지점을 둔다. K3 · K6 승인은 책임 주체인 상인회 사무국에 남긴다 (4칸 · risk_check.md).</p></div>
+      </div>
+    </div>
+    <div class="foot"><span>후보를 쓸지는 사람이 정한다</span><span>야시장 오늘의 매대판 · BM v1</span></div>
+  </div>
+</section>
+
+<!-- 5. 학습 루프 -->
+<section class="slide">
+  <div class="in">
+    <div class="top"><h2>학습 루프 — 이용 → 데이터 → 개선 → 결과</h2><span class="no">05 · 우선순위 <span class="t cl">Claude 결정</span></span></div>
+    <div class="loops">
+      <div class="loop first">
+        <h4><span class="badge">먼저</span>① 정확도 — AI가 덜 틀리게</h4>
+        <div class="flow">
+          <div class="step"><b>이용</b>상인 입력 → AI 카드 → 사무국 수정 · 방문객 신고</div>
+          <div class="step"><b>데이터</b>AI 값 ↔ 사무국이 고친 값 짝 (가정)</div>
+          <div class="step"><b>개선</b>자주 틀리는 유형을 찾아 추출 방식 수정 (가정)</div>
+          <div class="step"><b>결과</b>수정 · 신고 감소 → 확인 인건비 감소</div>
+        </div>
+        <p class="why">비용 구조의 가장 큰 항목을 줄이는 루프. 근거: ideas_top3.md · 4 · 7 · 9칸</p>
+      </div>
+      <div class="loop first">
+        <h4><span class="badge">먼저</span>③ 상인 참여 — 입력이 끊기지 않게</h4>
+        <div class="flow">
+          <div class="step"><b>이용</b>장사 시작 전 입력, 또는 안 함</div>
+          <div class="step"><b>데이터</b>매대별 입력 여부 · 시각 (가정)</div>
+          <div class="step"><b>개선</b>미입력 매대 알림 · 입력 안내 (가정)</div>
+          <div class="step"><b>결과</b>빈 카드 감소 (가정)</div>
+        </div>
+        <p class="why">멈추면 D5가 쌓이지 않아 모든 루프가 멈춤. 상인 휴대전화 여건은 <span class="mi">추정</span> (jtbd.md)</p>
+      </div>
+      <div class="loop">
+        <h4><span class="badge later">나중</span>② 방문객 가치 — P1이 줄었나</h4>
+        <div class="flow">
+          <div class="step"><b>이용</b>입구 · 매대 앞 QR로 열람</div>
+          <div class="step"><b>데이터</b>열람 기록 · 리뷰 결제 실패 언급</div>
+          <div class="step"><b>개선</b>리뷰 태그 분류(O8)로 화면 수정</div>
+          <div class="step"><b>결과</b>결제 실패 · 재대기 언급 감소</div>
+        </div>
+        <p class="why">기준값: VOC 300건 <span class="t ok">확인값 painpoint_def.md</span>의 P1 언급 건수 — 원본이 폴더에 없어 <span class="mi">미확인</span></p>
+      </div>
+      <div class="loop">
+        <h4><span class="badge later">나중</span>④ 확장 — 데이터가 다음 기능을 연다</h4>
+        <div class="flow">
+          <div class="step"><b>이용</b>매일의 입력이 쌓임</div>
+          <div class="step"><b>데이터</b>누적 D5 + 방문객 수(D4)</div>
+          <div class="step"><b>개선</b>3위 대기 · 품절 미리 보기(O3)</div>
+          <div class="step"><b>결과</b>P3까지 줄임 · 상인회 리포트(R5)</div>
+        </div>
+        <p class="why">"1위의 입력 기록이 쌓여야 가능" (ideas_top3.md) · revenue_options.md</p>
+      </div>
+    </div>
+    <div class="foot"><span>주의: 초기엔 데이터가 없어 사무국 확인 비중이 가장 큼 · 학습용 사진은 가린 뒤의 것만 저장</span><span>야시장 오늘의 매대판 · BM v1</span></div>
+  </div>
+</section>
+
+<!-- 6. 약한 고리 + 결정 기록 -->
+<section class="slide">
+  <div class="in">
+    <div class="top"><h2>약한 고리와 결정 기록</h2><span class="no">06 · 레드팀이 먼저 볼 곳</span></div>
+    <div class="cols" style="grid-template-columns:1fr 1.15fr">
+      <div class="card">
+        <h4>약한 고리 <span class="src">(순서는 가정)</span></h4>
+        <table class="tb">
+          <tr><th></th><th>약한 고리</th><th>왜 약한가</th></tr>
+          <tr class="hl"><td>1</td><td>비용 금액 전체</td><td>네 항목 모두 미정 → 수익 월 40만 원 <span class="t as">가정값</span>과 비교 불가</td></tr>
+          <tr><td>2</td><td>80곳 모두에 낼지</td><td>지불 의향은 확인, 전체 적용 · 예산은 미확인</td></tr>
+          <tr><td>3</td><td>사무국이 감당할지</td><td>확인 · 신고 처리를 맡겼지만 인력 여유 미확인</td></tr>
+          <tr><td>4</td><td>상인이 매일 입력할지</td><td>인터뷰 전, 추정뿐 (jtbd.md)</td></tr>
+          <tr><td>5</td><td>방문객이 QR을 찍을지</td><td>자료 근거 없음 (가정)</td></tr>
+          <tr><td>6</td><td>성공 신호 기준값</td><td>현재 결제 실패 언급 건수 모름</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h4>결정 기록</h4>
+        <table class="tb">
+          <tr><th>결정할 것</th><th>결정</th><th>결정한 사람</th></tr>
+          <tr><td>세그먼트 · 가치 · 채널 · 관계 · 자원 · 파트너 · 인건비</td><td>각 칸대로</td><td><span class="t hu">사람 결정</span></td></tr>
+          <tr><td>상인회 지불 의향</td><td>월 5천 ~ 1만 원 <span class="t ok">확인값 설문 · 사람 전달</span></td><td><span class="t hu">사람 전달</span></td></tr>
+          <tr><td>정보 확인 · 수정 책임</td><td><b>B. 상인회 사무국</b></td><td><span class="t cl">Claude 결정</span></td></tr>
+          <tr><td>수익모델</td><td><b>R1 월 구독료</b></td><td><span class="t cl">Claude 결정</span></td></tr>
+          <tr><td>구독 가격</td><td><b>월 5천 원</b> <span class="t ok">확인값 설문 · 사람 전달</span></td><td><span class="t cl">Claude 결정</span></td></tr>
+          <tr><td>빠진 비용</td><td>AI · QR 추가, 신고는 인건비에 합침</td><td><span class="t cl">Claude 결정</span></td></tr>
+          <tr><td>학습 루프 순서</td><td>① · ③ 먼저, ② · ④ 나중</td><td><span class="t cl">Claude 결정</span></td></tr>
+        </table>
+        <p class="note">Claude 결정은 이번 확정에 한해 사람이 위임한 것으로, CLAUDE.md "결정은 사람이 한다"의 예외다.</p>
+      </div>
+    </div>
+    <div class="foot"><span>원본: bm/bm_canvas.md</span><span>야시장 오늘의 매대판 · BM v1</span></div>
+  </div>
+</section>
+
+</main>
+</body>
+</html>

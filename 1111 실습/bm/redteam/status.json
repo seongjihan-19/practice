@@ -1,0 +1,22 @@
+{
+  "run_id": "20261111-121108",
+  "state": "done",
+  "requested_at": "2026-11-11 12:11:08",
+  "agents": {
+    "redteam-investor": {
+      "state": "done",
+      "started": "2026-11-11 12:11:08",
+      "finished": "2026-11-11 12:13:23"
+    },
+    "redteam-customer": {
+      "state": "done",
+      "started": "2026-11-11 12:11:09",
+      "finished": "2026-11-11 12:12:46"
+    },
+    "redteam-competitor": {
+      "state": "done",
+      "started": "2026-11-11 12:11:09",
+      "finished": "2026-11-11 12:13:23"
+    }
+  }
+}

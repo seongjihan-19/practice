@@ -1,0 +1,5 @@
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+VOC_PROJECT_ROOT = 'D:\L.L.M Academy (AX부트캠프)\1110 실습'

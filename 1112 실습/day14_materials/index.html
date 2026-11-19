@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFE1EE">
+<title>오늘의 매대판</title>
+<meta name="description" content="서문시장 야시장 매대별 결제 수단 · 오늘 영업 여부 · 품절 메뉴를 줄 서기 전에 확인하는 모바일 매대판 (수업 예시 · 가상 데이터)">
+<style>
+  /* 디자인 시스템 "솜사탕 야시장" — spec/spec.md 7장 */
+  :root {
+    --bg: #FFF8FB; --surface: #FFFFFF; --blush: #FFF0F6; --line: #F3C6DA;
+    --text: #3A2440; --muted: #6F5A78;
+    --pink: #D6336C; --pink-ink: #C2255C; --pink-soft: #FFE1EE;
+    --lilac: #7B5CD6; --lilac-soft: #EFEAF8;
+    --header-grad: linear-gradient(135deg, #FFE1EE 0%, #EFEAF8 50%, #DDF0FF 100%);
+    --yes: #0E6B4A; --yes-bg: #E2F7EE;
+    --no: #B0213F;  --no-bg: #FFE7EC;
+    --unk: #5B4F72; --unk-bg: #EFEAF8;
+    --sold: #A23F0C; --sold-bg: #FFEDE0;
+    --off: #5F5866; --off-bg: #F2EFF4;
+    --ai: #1F5C8F; --ai-bg: #E6F2FF;
+    --shadow: 0 4px 16px rgba(214, 51, 108, .08);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    font-size: 16px; line-height: 1.5; word-break: keep-all;
+  }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--lilac); outline-offset: 2px; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 0 16px; }
+
+  /* 머리 */
+  .hero {
+    background: var(--header-grad);
+    border-radius: 0 0 28px 28px;
+    padding: calc(24px + env(safe-area-inset-top)) 0 24px;
+  }
+  .eyebrow { margin: 0; font-size: 14px; color: var(--muted); }
+  h1 { margin: 4px 0 0; font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+  .tagline { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+
+  /* 고정 필터 바 */
+  .bar {
+    position: sticky; top: 0; z-index: 5;
+    background: rgba(255, 248, 251, .94);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    padding: 12px 0;
+  }
+  .label { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+  .search {
+    width: 100%; height: 44px; padding: 0 16px; margin-bottom: 12px;
+    border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface);
+    color: var(--text); font: inherit;
+  }
+  .search::placeholder { color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    min-height: 44px; padding: 0 16px; border-radius: 999px;
+    border: 1.5px solid var(--line); background: var(--surface);
+    font-size: 15px; cursor: pointer; transition: transform .15s;
+  }
+  .chip:active { transform: scale(.96); }
+  .chip[aria-pressed="true"] { background: var(--lilac); border-color: var(--lilac); color: #fff; font-weight: 700; }
+  .chip[aria-pressed="true"]::before { content: "✓ "; }
+  .switch-row { display: flex; justify-content: flex-end; margin-top: 12px; }
+  .switch {
+    display: inline-flex; align-items: center; gap: 8px; min-height: 44px;
+    background: none; border: 0; padding: 0; cursor: pointer; font-size: 15px;
+  }
+  .track { position: relative; width: 44px; height: 26px; border-radius: 999px; background: var(--off-bg); border: 1.5px solid var(--line); transition: background .2s; }
+  .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 19px; height: 19px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(58, 36, 64, .25); transition: transform .2s; }
+  .switch[aria-pressed="true"] .track { background: var(--yes); border-color: var(--yes); }
+  .switch[aria-pressed="true"] .track::after { transform: translateX(18px); }
+
+  /* 요약 */
+  .summary { margin: 16px 0 4px; font-size: 15px; }
+  .summary b { color: var(--pink-ink); }
+  .hint { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+
+  /* 매대 카드 */
+  .list { display: grid; gap: 12px; padding: 8px 0 24px; margin: 0; list-style: none; transition: opacity .2s; }
+  .list.fade { opacity: .3; }
+  .card { background: var(--surface); border-radius: 20px; padding: 16px; box-shadow: var(--shadow); border: 1.5px solid transparent; }
+  .card.closed, .card.unknown { background: var(--off-bg); box-shadow: none; border: 1.5px dashed var(--line); }
+  .head { display: flex; align-items: flex-start; gap: 8px; }
+  .no {
+    flex: none; padding: 2px 10px; border-radius: 999px;
+    background: var(--pink-soft); color: var(--pink-ink); font-size: 13px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .title { flex: 1; min-width: 0; }
+  .title h2 { margin: 0; font-size: 18px; line-height: 1.3; }
+  .title p { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
+  .status { flex: none; font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+  .status.open { color: var(--yes); background: var(--yes-bg); }
+  .status.closed { color: var(--off); background: var(--surface); }
+  .status.unknown { color: var(--unk); background: var(--unk-bg); }
+
+  .pay { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
+  @media (max-width: 339px) { .pay { grid-template-columns: repeat(2, 1fr); } }
+  .pay li {
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    padding: 8px 2px; border-radius: 12px; font-size: 13px; text-align: center; border: 2px solid transparent;
+  }
+  .pay li .mark { font-size: 14px; font-weight: 700; line-height: 1.2; }
+  .pay .yes { color: var(--yes); background: var(--yes-bg); }
+  .pay .no { color: var(--no); background: var(--no-bg); }
+  .pay .no .name { text-decoration: line-through; }
+  .pay .unk { color: var(--unk); background: var(--unk-bg); }
+  .pay li.picked { border-color: var(--lilac); }
+
+  .note { position: relative; margin: 12px 0 0; padding: 10px 12px 10px 30px; background: var(--blush); border-radius: 12px; font-size: 15px; }
+  .note::before { content: "“"; position: absolute; left: 10px; top: 2px; font-size: 26px; line-height: 1; color: var(--pink-ink); }
+  .sold { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0 0; font-size: 15px; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+  .tag.sold-tag { color: var(--sold); background: var(--sold-bg); }
+  .tag.none-tag { color: var(--yes); background: var(--yes-bg); }
+  .empty-msg { margin: 12px 0 0; color: var(--muted); font-size: 15px; }
+
+  details { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 8px; }
+  summary { cursor: pointer; font-size: 14px; color: var(--pink-ink); padding: 6px 0; }
+  .menu { margin: 4px 0 0; padding: 0; list-style: none; font-size: 15px; }
+  .menu li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; }
+  .menu li.out span:first-child { color: var(--muted); text-decoration: line-through; }
+  .menu .price { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+
+  .foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .ai { font-size: 13px; color: var(--ai); background: var(--ai-bg); padding: 4px 10px; border-radius: 999px; }
+  .ai::before { content: "✦ "; }
+  .ai.none { color: var(--off); background: var(--surface); }
+  .ai.none::before { content: ""; }
+  .report {
+    min-height: 40px; padding: 0 14px; border-radius: 14px;
+    border: 1.5px solid var(--line); background: var(--surface); font-size: 14px; cursor: pointer;
+  }
+
+  .nores { text-align: center; color: var(--muted); padding: 40px 16px; background: var(--surface); border-radius: 20px; }
+  .nores strong { display: block; color: var(--text); font-size: 16px; margin-bottom: 4px; }
+
+  /* 하단 안내 */
+  .about { padding: 8px 0 calc(32px + env(safe-area-inset-bottom)); font-size: 14px; color: var(--muted); }
+  .about .box { background: var(--surface); border-radius: 20px; padding: 16px; }
+  .about h3 { margin: 0 0 8px; font-size: 16px; color: var(--text); }
+  .about ul { margin: 0 0 12px; padding-left: 18px; }
+  .about li { margin-bottom: 4px; }
+  .about b { color: var(--text); }
+
+  /* 신고 시트 */
+  dialog {
+    width: 100%; max-width: 560px; margin: auto auto 0; padding: 0; border: 0;
+    border-radius: 28px 28px 0 0; background: var(--surface); color: var(--text);
+  }
+  dialog::backdrop { background: rgba(58, 36, 64, .35); }
+  dialog form { padding: 8px 20px calc(20px + env(safe-area-inset-bottom)); }
+  .grab { width: 40px; height: 4px; border-radius: 4px; background: var(--line); margin: 6px auto 14px; }
+  dialog h2 { margin: 0 0 2px; font-size: 20px; }
+  dialog .sub { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+  fieldset { border: 0; padding: 0; margin: 0 0 12px; display: grid; gap: 8px; }
+  legend { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+  .opt {
+    display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px;
+    border: 1.5px solid var(--line); border-radius: 14px; cursor: pointer;
+  }
+  .opt:has(input:checked) { border-color: var(--lilac); background: var(--lilac-soft); }
+  .opt input { accent-color: var(--lilac); width: 18px; height: 18px; }
+  textarea {
+    width: 100%; min-height: 80px; padding: 12px; resize: vertical;
+    border-radius: 14px; border: 1.5px solid var(--line); background: var(--blush); color: var(--text); font: inherit;
+  }
+  .warn { margin: 6px 0 16px; font-size: 13px; color: var(--muted); }
+  .actions { display: flex; gap: 8px; }
+  .actions button { flex: 1; min-height: 48px; border-radius: 14px; font-weight: 700; cursor: pointer; }
+  .btn-ghost { background: var(--surface); border: 1.5px solid var(--line); }
+  .btn-main { background: var(--pink); color: #fff; border: 0; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px);
+    width: min(100% - 32px, 480px); padding: 12px 16px; border-radius: 16px;
+    background: var(--text); color: #fff; font-size: 14px;
+    opacity: 0; pointer-events: none; transition: .25s ease;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">서문시장 야시장 · <span id="today"></span></p>
+    <h1>오늘의 매대판</h1>
+    <p class="tagline">줄 서기 전에, 내 결제 수단으로 살 수 있는지 확인해요</p>
+  </div>
+</header>
+
+<div class="bar">
+  <div class="wrap">
+    <input class="search" id="q" type="search" placeholder="매대 이름이나 메뉴 검색 (예: 호떡)" aria-label="매대 · 메뉴 검색" autocomplete="off">
+    <p class="label">내 결제 수단 — 되는 매대만 보여 줘요</p>
+    <div class="chips" id="payChips"></div>
+    <div class="switch-row">
+      <button class="switch" id="openOnly" aria-pressed="true" type="button"><span class="track" aria-hidden="true"></span>오늘 여는 매대만</button>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <p class="summary" id="summary" aria-live="polite"></p>
+  <p class="hint" id="hint" hidden></p>
+  <ul class="list" id="list"></ul>
+</main>
+
+<footer class="about">
+  <div class="wrap">
+    <div class="box">
+      <h3>이 화면을 읽는 법</h3>
+      <ul>
+        <li>카드는 상인이 장사 전에 올린 사진 · 한마디를 AI가 정리한 것입니다. 카드마다 <b>“AI 정리 · 상인 입력 hh:mm 기준”</b>을 붙이고, 상인이 미리보기에서 확인한 뒤에만 게시됩니다.</li>
+        <li>상인 입력에 없는 항목은 AI가 짐작해서 채우지 않고 <b>정보 없음</b>으로 둡니다. 줄 서기 전에 매대에 한 번 물어봐 주세요.</li>
+        <li>정렬은 <b>매대 번호순</b> 고정입니다. 입력을 자주 하는 매대가 위로 올라가지 않습니다.</li>
+        <li>계좌번호와 사진 속 손님 얼굴은 매대판에 싣지 않습니다.</li>
+        <li>정보가 틀리면 카드의 <b>틀린 정보 신고</b>를 눌러 주세요. 상인회 사무국이 확인하고 당일 고칩니다.</li>
+      </ul>
+      <p>수업 예시 · 가상 데이터입니다. 매대 이름 · 메뉴 · 시간은 모두 지어낸 값이며, 신고는 실제로 전송되지 않습니다.</p>
+    </div>
+  </div>
+</footer>
+
+<dialog id="reportDlg" aria-labelledby="reportTitle">
+  <form method="dialog" id="reportForm">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="reportTitle">틀린 정보 신고</h2>
+    <p class="sub" id="reportStall"></p>
+    <fieldset>
+      <legend>무엇이 달랐나요?</legend>
+      <label class="opt"><input type="radio" name="kind" value="결제 수단" checked> 결제 수단</label>
+      <label class="opt"><input type="radio" name="kind" value="영업 여부"> 오늘 영업 여부</label>
+      <label class="opt"><input type="radio" name="kind" value="품절 메뉴"> 품절 메뉴</label>
+      <label class="opt"><input type="radio" name="kind" value="기타"> 기타</label>
+    </fieldset>
+    <label for="reportText" class="label" style="display:block">현장에서 본 내용 (선택)</label>
+    <textarea id="reportText" maxlength="200" placeholder="예: 카드 된다고 나왔는데 현금만 받으셨어요"></textarea>
+    <p class="warn">이름 · 전화번호 · 계좌번호는 적지 말아 주세요.</p>
+    <div class="actions">
+      <button class="btn-ghost" value="cancel" type="submit" formnovalidate>취소</button>
+      <button class="btn-main" value="send" type="submit">신고 보내기</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* 수업 예시 · 가상 데이터 — 매대 이름 · 메뉴 · 입력 시각은 모두 지어낸 값 */
+const PAY = [
+  { k: 'cash', l: '현금' },
+  { k: 'card', l: '카드' },
+  { k: 'transfer', l: '계좌이체' },
+  { k: 'pay', l: '간편결제' }
+];
+
+// open: true 영업 / false 오늘 쉼 / null 정보 없음
+// pay 값: true 됨 / false 안 됨 / null 정보 없음 (입력에 없으면 채우지 않음)
+const STALLS = [
+  { no: 'A-01', name: '진미 납작만두', cat: '분식', open: true, at: '17:31',
+    pay: { cash: true, card: true, transfer: true, pay: false },
+    menu: [['납작만두', 4000], ['비빔 납작만두', 6000], ['김밥', 3500]], sold: [] },
+  { no: 'A-02', name: '씨앗호떡 할매', cat: '간식', open: true, at: '17:48',
+    pay: { cash: true, card: false, transfer: true, pay: false },
+    note: '카드 단말기 없어요. 현금 · 계좌이체만 받아요.',
+    menu: [['씨앗호떡', 2000], ['꿀호떡', 1500], ['치즈호떡', 2500]], sold: ['치즈호떡'] },
+  { no: 'A-03', name: '불막창 골목집', cat: '구이', open: true, at: '17:05',
+    pay: { cash: true, card: true, transfer: true, pay: true },
+    menu: [['막창 (소)', 12000], ['막창 (대)', 20000], ['곱창볶음', 15000]], sold: ['막창 (대)'] },
+  { no: 'A-04', name: '바삭 닭강정', cat: '튀김', open: false, at: '16:55',
+    note: '오늘은 쉽니다. 금요일에 다시 나와요.',
+    pay: { cash: true, card: true, transfer: false, pay: true },
+    menu: [['닭강정 컵', 5000], ['닭강정 반 마리', 10000]], sold: [] },
+  { no: 'B-01', name: '서문 떡볶이', cat: '분식', open: true, at: '17:20',
+    pay: { cash: true, card: true, transfer: null, pay: true },
+    menu: [['떡볶이', 4000], ['순대', 4000], ['튀김 모둠', 5000]], sold: [] },
+  { no: 'B-02', name: '수제 어묵바', cat: '분식', open: true, at: '17:39',
+    pay: { cash: true, card: false, transfer: false, pay: false },
+    note: '오늘은 현금만 받아요.',
+    menu: [['꼬치 어묵', 1000], ['어묵탕', 5000]], sold: [] },
+  { no: 'B-03', name: '철판 오징어', cat: '구이', open: null, at: null, pay: null,
+    menu: [], sold: [] },
+  { no: 'B-04', name: '대왕 꼬치', cat: '구이', open: true, at: '17:12',
+    pay: { cash: true, card: true, transfer: false, pay: true },
+    menu: [['소고기 꼬치', 6000], ['양꼬치', 7000], ['닭꼬치', 4000]], sold: ['양꼬치'] },
+  { no: 'C-01', name: '크림 붕어빵', cat: '간식', open: true, at: '17:44',
+    pay: { cash: true, card: false, transfer: true, pay: null },
+    menu: [['팥 붕어빵 3개', 2000], ['슈크림 붕어빵 3개', 2500]], sold: [] },
+  { no: 'C-02', name: '막걸리 빈대떡', cat: '전 · 주점', open: true, at: '16:58',
+    pay: { cash: true, card: true, transfer: true, pay: true },
+    menu: [['녹두 빈대떡', 8000], ['고기 빈대떡', 10000], ['생막걸리', 5000]], sold: ['고기 빈대떡'] },
+  { no: 'C-03', name: '과일 꼬치', cat: '디저트', open: true, at: '17:27',
+    pay: { cash: false, card: true, transfer: false, pay: true },
+    note: '현금 안 받아요. 카드 · 페이만 돼요.',
+    menu: [['딸기 꼬치', 4000], ['샤인머스캣 꼬치', 5000], ['귤 꼬치', 3000]], sold: ['딸기 꼬치', '귤 꼬치'] },
+  { no: 'C-04', name: '찹쌀 꽈배기', cat: '간식', open: false, at: '15:40',
+    pay: { cash: true, card: true, transfer: true, pay: false },
+    menu: [['꽈배기 3개', 3000], ['팥도넛', 1500]], sold: [] }
+];
+
+const state = { pays: new Set(), openOnly: true, q: '' };
+const $ = id => document.getElementById(id);
+const won = n => n.toLocaleString('ko-KR') + '원';
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* 오늘 날짜 (야시장 운영 상태 영역은 decision_log D-06에 따라 뺌) */
+function renderDate() {
+  const now = new Date();
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  $('today').textContent = `${now.getMonth() + 1}월 ${now.getDate()}일 (${days[now.getDay()]})`;
+}
+
+/* 결제 수단 칩 */
+function renderChips() {
+  $('payChips').innerHTML = PAY.map(p =>
+    `<button class="chip" type="button" data-pay="${p.k}" aria-pressed="${state.pays.has(p.k)}">${p.l}</button>`
+  ).join('');
+}
+
+/* 필터 */
+function matchQuery(s) {
+  if (!state.q) return true;
+  const q = state.q;
+  return s.name.includes(q) || s.cat.includes(q) || s.menu.some(m => m[0].includes(q));
+}
+function payOk(s) {
+  if (!state.pays.size) return true;
+  return s.pay && [...state.pays].some(k => s.pay[k] === true);
+}
+function payUnknown(s) {
+  return !payOk(s) && (!s.pay || [...state.pays].some(k => s.pay[k] === null));
+}
+
+/* 카드 */
+function card(s) {
+  const kind = s.open === true ? 'open' : s.open === false ? 'closed' : 'unknown';
+  const statusText = { open: '● 오늘 영업', closed: '☾ 오늘 쉼', unknown: '? 정보 없음' }[kind];
+  let body = '';
+
+  if (kind === 'unknown') {
+    body = `<p class="empty-msg">오늘 상인 입력이 아직 없어요. 영업 여부 · 결제 수단을 짐작해서 채우지 않았어요.</p>`;
+  } else {
+    if (s.note) body += `<p class="note">${esc(s.note)}</p>`;
+    if (kind === 'open') {
+      body += `<ul class="pay" aria-label="결제 수단">` + PAY.map(p => {
+        const v = s.pay[p.k];
+        const cls = v === true ? 'yes' : v === false ? 'no' : 'unk';
+        const mark = v === true ? '✓ 됨' : v === false ? '✕ 안 됨' : '? 정보 없음';
+        const picked = state.pays.has(p.k) ? ' picked' : '';
+        return `<li class="${cls}${picked}"><span class="name">${p.l}</span><span class="mark">${mark}</span></li>`;
+      }).join('') + `</ul>`;
+      body += s.sold.length
+        ? `<p class="sold"><span class="tag sold-tag">● 품절</span>${s.sold.map(esc).join(' · ')}</p>`
+        : `<p class="sold"><span class="tag none-tag">✓ 품절 없음</span><span style="color:var(--muted);font-size:14px">상인 입력 기준</span></p>`;
+      if (s.menu.length) {
+        body += `<details><summary>메뉴 ${s.menu.length}개 보기</summary><ul class="menu">` +
+          s.menu.map(([n, p]) => {
+            const out = s.sold.includes(n);
+            return `<li class="${out ? 'out' : ''}"><span>${esc(n)}${out ? ' (품절)' : ''}</span><span class="price">${won(p)}</span></li>`;
+          }).join('') + `</ul></details>`;
+      }
+    }
+  }
+
+  const ai = s.at ? `<span class="ai">AI 정리 · 상인 입력 ${s.at} 기준</span>` : `<span class="ai none">상인 입력 없음</span>`;
+  return `<li class="card ${kind}">
+    <div class="head">
+      <span class="no">${s.no}</span>
+      <div class="title"><h2>${esc(s.name)}</h2><p>${esc(s.cat)}</p></div>
+      <span class="status ${kind}">${statusText}</span>
+    </div>
+    ${body}
+    <div class="foot">${ai}<button class="report" type="button" data-report="${s.no}">틀린 정보 신고</button></div>
+  </li>`;
+}
+
+function render() {
+  const base = STALLS.filter(matchQuery);
+  const shown = base.filter(s => (!state.openOnly || s.open === true) && payOk(s));
+  shown.sort((a, b) => a.no.localeCompare(b.no)); // 매대 번호순 고정
+
+  $('list').innerHTML = shown.length
+    ? shown.map(card).join('')
+    : `<li class="nores"><strong>조건에 맞는 매대가 없어요</strong>결제 수단이나 검색어를 바꿔 보세요.</li>`;
+
+  const openCount = STALLS.filter(s => s.open === true).length;
+  const payLabel = [...state.pays].map(k => PAY.find(p => p.k === k).l).join(' · ');
+  $('summary').innerHTML = state.pays.size
+    ? `${payLabel}로 살 수 있는 매대 <b>${shown.length}곳</b>`
+    : `오늘 여는 매대 <b>${openCount}곳</b> / 전체 ${STALLS.length}곳 · 매대 번호순`;
+
+  const hidden = [];
+  if (state.openOnly) {
+    const closed = base.filter(s => s.open === false).length;
+    const unk = base.filter(s => s.open === null).length;
+    if (closed) hidden.push(`오늘 쉼 ${closed}곳`);
+    if (unk) hidden.push(`영업 정보 없음 ${unk}곳`);
+  }
+  if (state.pays.size) {
+    const u = base.filter(s => s.open === true && payUnknown(s)).length;
+    if (u) hidden.push(`고른 결제 수단 정보 없음 ${u}곳`);
+  }
+  $('hint').hidden = !hidden.length;
+  $('hint').textContent = hidden.length ? `빠진 매대: ${hidden.join(', ')}` : '';
+}
+
+function rerender() {
+  const list = $('list');
+  list.classList.add('fade');
+  requestAnimationFrame(() => { render(); requestAnimationFrame(() => list.classList.remove('fade')); });
+}
+
+/* 이벤트 */
+$('payChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-pay]');
+  if (!b) return;
+  const k = b.dataset.pay;
+  state.pays.has(k) ? state.pays.delete(k) : state.pays.add(k);
+  b.setAttribute('aria-pressed', state.pays.has(k));
+  rerender();
+});
+$('openOnly').addEventListener('click', e => {
+  state.openOnly = !state.openOnly;
+  e.currentTarget.setAttribute('aria-pressed', state.openOnly);
+  rerender();
+});
+$('q').addEventListener('input', e => { state.q = e.target.value.trim(); render(); });
+
+const dlg = $('reportDlg');
+let reporting = null;
+$('list').addEventListener('click', e => {
+  const b = e.target.closest('[data-report]');
+  if (!b) return;
+  reporting = STALLS.find(s => s.no === b.dataset.report);
+  $('reportStall').textContent = `${reporting.no} ${reporting.name}`;
+  $('reportForm').reset();
+  if (typeof dlg.showModal === 'function') dlg.showModal();
+});
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close('cancel'); });
+dlg.addEventListener('close', () => {
+  if (dlg.returnValue === 'send' && reporting) {
+    const kind = new FormData($('reportForm')).get('kind');
+    toast(`${reporting.name} · ${kind} 신고가 접수됐어요. 상인회 사무국이 확인하고 고칩니다. (데모 — 실제 전송 안 됨)`);
+  }
+  reporting = null;
+});
+
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3800);
+}
+
+renderDate();
+renderChips();
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+{
+  "env": {
+    "VOC_PROJECT_ROOT": "D:\\L.L.M Academy (AX부트캠프)\\1110 실습"
+  },
+  "permissions": {
+    "allow": [
+      "Read(./archive/**)",
+      "Read(./painpoint/**)",
+      "Read(./ax/demo/**)",
+      "Write(./ax/demo/**)",
+      "Edit(./ax/demo/**)"
+    ],
+    "deny": [
+      "Write(./archive/**)",
+      "Edit(./archive/**)",
+      "Write(./painpoint/**)",
+      "Edit(./painpoint/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Users/한성지/AppData/Local/Programs/Python/Python312/python.exe\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/log_event.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Users/한성지/AppData/Local/Programs/Python/Python312/python.exe\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/log_event.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Users/한성지/AppData/Local/Programs/Python/Python312/python.exe\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/log_event.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Users/한성지/AppData/Local/Programs/Python/Python312/python.exe\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/log_event.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

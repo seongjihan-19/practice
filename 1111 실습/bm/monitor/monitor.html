@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>레드팀 모니터</title>
+<style>
+:root{
+  --bg:#f3f1ec; --panel:#ffffff; --ink:#1d1b18; --muted:#6b665d; --line:#e0dbd0; --head:#f6f3ec;
+  --accent:#c2410c; --neon:#39ff14; --neon-ink:#0b3d02;
+  --ok:#166534; --ok-bg:#dcf2e3; --no:#991b1b; --no-bg:#fde2e2; --ed:#1e40af; --ed-bg:#dde6fb;
+  --wait:#92400e; --wait-bg:#fef3c7;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121110; --panel:#1c1b19; --ink:#efebe4; --muted:#a39d92; --line:#34312c; --head:#24221f;
+    --accent:#fb923c; --neon-ink:#0b3d02;
+    --ok:#86efac; --ok-bg:#143322; --no:#fca5a5; --no-bg:#3b1717; --ed:#93b4fb; --ed-bg:#1c2848;
+    --wait:#fcd34d; --wait-bg:#3a2c0b;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:"Noto Sans KR","Malgun Gothic",system-ui,sans-serif;font-size:14px;line-height:1.5;padding:20px 16px 60px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-size:22px;font-weight:900;letter-spacing:-.02em}
+h1 small{display:block;font-size:12px;color:var(--muted);font-weight:500;letter-spacing:0}
+h2{font-size:15px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+button{font:inherit;cursor:pointer;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 12px;font-weight:700}
+button:disabled{opacity:.4;cursor:not-allowed}
+#runBtn{background:var(--accent);color:#fff;border:none;padding:11px 26px;font-size:15px}
+#runBtn:hover:not(:disabled){filter:brightness(1.08)}
+
+.banner{display:none;padding:10px 14px;border-radius:8px;background:var(--wait-bg);color:var(--wait);font-weight:700}
+.banner.show{display:block}
+.banner code{background:rgba(0,0,0,.08);padding:1px 6px;border-radius:4px}
+
+.agents{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:760px){.agents{grid-template-columns:1fr}}
+.agent{border:2px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--panel);transition:background .2s}
+.agent .nm{font-weight:900;font-size:16px}
+.agent .id{font-size:12px;color:var(--muted)}
+.agent .st{margin-top:10px;display:inline-block;font-weight:800;font-size:13px;padding:2px 10px;border-radius:20px;background:var(--head);color:var(--muted)}
+.agent .tm{margin-top:6px;font-size:12px;color:var(--muted);min-height:18px}
+.agent.requested .st{background:var(--wait-bg);color:var(--wait)}
+.agent.done{border-color:var(--ok)}
+.agent.done .st{background:var(--ok-bg);color:var(--ok)}
+.agent.running{animation:neon 0.9s ease-in-out infinite;border-color:var(--neon)}
+.agent.running .st{background:var(--neon);color:var(--neon-ink)}
+@keyframes neon{
+  0%,100%{background:var(--neon);box-shadow:0 0 18px 4px var(--neon);color:var(--neon-ink)}
+  50%{background:var(--panel);box-shadow:0 0 0 0 transparent;color:var(--ink)}
+}
+.agent.running .id,.agent.running .tm{color:inherit}
+@media (prefers-reduced-motion: reduce){.agent.running{animation:none;background:var(--neon);color:var(--neon-ink)}}
+
+.log{max-height:240px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--head);border-radius:8px;padding:10px 12px}
+.log div{padding:2px 0;border-bottom:1px dashed var(--line)}
+.log div:last-child{border-bottom:none}
+.log .t{color:var(--muted);margin-right:8px}
+.log .a{font-weight:700;margin-right:6px}
+.empty{color:var(--muted);padding:6px 0}
+
+.summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.chip{font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--head)}
+.chip.warn{background:var(--wait-bg);color:var(--wait)}
+.chip.good{background:var(--ok-bg);color:var(--ok)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:900px}
+th{background:var(--head);text-align:left;font-size:12.5px;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13px}
+tr.group td{background:var(--head);font-weight:900;font-size:13px}
+th:last-child,td:last-child{position:sticky;right:0;background:var(--panel);box-shadow:-6px 0 8px -6px rgba(0,0,0,.15)}
+th:last-child{background:var(--head)}
+tr.group td:last-child{position:static;box-shadow:none;background:var(--head)}
+.sev{font-weight:800}
+.dec{font-weight:800;font-size:12px;padding:2px 8px;border-radius:12px;white-space:nowrap;display:inline-block}
+.dec.반영{background:var(--ok-bg);color:var(--ok)}
+.dec.반박{background:var(--no-bg);color:var(--no)}
+.dec.빈칸{background:var(--wait-bg);color:var(--wait)}
+.edit-note{margin-top:4px;font-size:12px;color:var(--ed)}
+.acts{display:flex;gap:6px;white-space:nowrap}
+.b-acc{border-color:var(--ok);color:var(--ok)}
+.b-acc.on{background:var(--ok);color:#fff}
+.b-edit{border-color:var(--ed);color:var(--ed)}
+.b-edit.on{background:var(--ed);color:#fff}
+.b-rej{border-color:var(--no);color:var(--no)}
+.b-rej.on{background:var(--no);color:#fff}
+.editor{margin-top:8px;display:none;gap:6px;flex-direction:column}
+.editor.open{display:flex}
+.editor textarea{font:inherit;width:100%;min-height:60px;padding:6px 8px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.editor .row{display:flex;gap:6px;justify-content:flex-end}
+.applied{font-size:12px;font-weight:700;color:var(--ok)}
+.err{color:var(--no);font-weight:700;min-height:20px}
+.foot{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>레드팀 모니터<small>bm/bm_canvas.md 검증 · 투자자 · 고객 · 경쟁사 3개 동시 실행</small></h1>
+    <button id="runBtn">▶ 실행</button>
+  </header>
+
+  <div id="banner" class="banner">실행 요청을 보냈어요. Claude Code 세션에 <code>레드팀 실행</code>이라고 입력하면 3개가 동시에 시작되고 카드가 깜빡여요.</div>
+
+  <section class="agents" id="agents"></section>
+
+  <section class="panel">
+    <h2>실행 로그 <span class="foot">bm/redteam/run_log.jsonl</span></h2>
+    <div class="log" id="log"></div>
+  </section>
+
+  <section class="panel">
+    <h2>사람 결정이 필요한 항목 <span class="foot">수용 → 반영 · 수정 → 반영(수정 내용대로) · 반려 → 반박 · 저장: bm/redteam_log.md</span></h2>
+    <div class="summary" id="summary"></div>
+    <div class="err" id="err"></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>번호</th><th>대상 칸</th><th>지적 내용</th><th>근거</th><th>심각도</th><th>결정</th><th>처리</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="foot" style="margin-top:10px">CLAUDE.md 규칙: 결정이 '반영'인 줄만 캔버스를 고친다. 캔버스 수정은 Claude Code 세션이 하고, 끝나면 '캔버스 반영 완료'로 바뀐다.</p>
+  </section>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ST_LABEL = {idle:"대기", requested:"세션 실행 대기", running:"검토 중", done:"검토 완료"};
+let state = null;
+const openEditors = new Set();
+
+async function api(path, body){
+  const r = await fetch(path, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {});
+  const j = await r.json();
+  if(!r.ok) throw new Error(j.error || r.status);
+  return j;
+}
+
+function renderAgents(){
+  const st = state.status;
+  $("#agents").innerHTML = Object.entries(state.agents).map(([id, nm]) => {
+    const a = st.agents[id] || {state:"idle"};
+    const s = (st.state === "requested" && a.state === "idle") ? "requested" : a.state;
+    const tm = a.finished ? `시작 ${esc(a.started)} · 완료 ${esc(a.finished)}` : a.started ? `시작 ${esc(a.started)}` : "";
+    return `<div class="agent ${s}"><div class="nm">${esc(nm)} 레드팀</div><div class="id">${esc(id)}</div>
+      <div class="st">${ST_LABEL[s] || s}</div><div class="tm">${tm}</div></div>`;
+  }).join("");
+  $("#banner").classList.toggle("show", st.state === "requested");
+  $("#runBtn").disabled = st.state === "requested" || st.state === "running";
+  $("#runBtn").textContent = st.state === "running" ? "● 실행 중…" : st.state === "requested" ? "● 실행 대기" : "▶ 실행";
+}
+
+function renderLog(){
+  const ev = state.events;
+  const box = $("#log");
+  const atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 4;
+  box.innerHTML = ev.length ? ev.map(e => `<div><span class="t">${esc(e.t)}</span>${e.agent ? `<span class="a">[${esc(state.agents[e.agent] || e.agent)}]</span>` : ""}${esc(e.msg)}</div>`).join("") : `<div class="empty">아직 실행 기록이 없어요.</div>`;
+  if(atBottom) box.scrollTop = box.scrollHeight;
+}
+
+function renderItems(){
+  const items = state.items;
+  const blank = items.filter(i => !i.decision).length;
+  const acc = items.filter(i => i.decision === "반영").length;
+  const rej = items.filter(i => i.decision === "반박").length;
+  const wait = items.filter(i => i.decision === "반영" && !i.applied).length;
+  $("#summary").innerHTML = items.length ? `
+    <span class="chip">지적 ${items.length}건</span>
+    <span class="chip ${blank ? "warn" : "good"}">결정 빈칸 ${blank}개</span>
+    <span class="chip">반영 ${acc}</span><span class="chip">반박 ${rej}</span>
+    <span class="chip ${wait ? "warn" : ""}">캔버스 반영 대기 ${wait}</span>` : "";
+
+  if(!items.length){ $("#rows").innerHTML = `<tr><td colspan="7" class="empty">레드팀 검토가 끝나면 여기에 항목이 나타나요.</td></tr>`; return; }
+  let html = "";
+  for(const [aid, nm] of Object.entries(state.agents)){
+    const rows = items.filter(i => i.agent === aid);
+    if(!rows.length) continue;
+    html += `<tr class="group"><td colspan="7">${esc(nm)} 레드팀 · ${rows.length}건</td></tr>`;
+    for(const i of rows){
+      const dec = i.decision || "빈칸";
+      const lock = i.applied ? "disabled" : "";
+      const on = b => i.button === b ? "on" : "";
+      const open = openEditors.has(i.id);
+      html += `<tr data-id="${esc(i.id)}">
+        <td><b>${esc(i.id)}</b></td><td>${esc(i.cell)}</td>
+        <td>${esc(i.issue)}${i.edit ? `<div class="edit-note">✎ 수정: ${esc(i.edit)}</div>` : ""}
+          <div class="editor ${open ? "open" : ""}"><textarea placeholder="캔버스에 어떻게 반영할지 수정 내용을 적어 주세요">${esc(i.edit || i.issue)}</textarea>
+          <div class="row"><button data-act="cancel">취소</button><button data-act="save" class="b-edit on">수정 저장</button></div></div></td>
+        <td>${esc(i.evidence)}</td><td class="sev">${esc(i.severity)}</td>
+        <td><span class="dec ${esc(dec)}">${esc(dec)}</span>${i.applied ? `<div class="applied">캔버스 반영 완료</div>` : ""}</td>
+        <td><div class="acts">
+          <button class="b-acc ${on("수용")}" data-act="수용" ${lock}>수용</button>
+          <button class="b-edit ${on("수정")}" data-act="수정" ${lock}>수정</button>
+          <button class="b-rej ${on("반려")}" data-act="반려" ${lock}>반려</button></div></td></tr>`;
+    }
+  }
+  // 열린 편집창의 입력 중 내용은 다시 그릴 때 보존
+  const drafts = {};
+  document.querySelectorAll("tr[data-id] .editor.open textarea").forEach(t => drafts[t.closest("tr").dataset.id] = t.value);
+  $("#rows").innerHTML = html;
+  for(const [id, v] of Object.entries(drafts)){
+    const t = document.querySelector(`tr[data-id="${CSS.escape(id)}"] textarea`); if(t) t.value = v;
+  }
+}
+
+function render(){ renderAgents(); renderLog(); renderItems(); }
+
+async function refresh(){
+  try{ state = await api("/api/state"); render(); }
+  catch(e){ $("#err").textContent = "서버에 연결할 수 없어요: " + e.message; }
+}
+
+$("#runBtn").addEventListener("click", async () => {
+  try{ state = await api("/api/run", {}); $("#err").textContent = ""; render(); }
+  catch(e){ $("#err").textContent = e.message; }
+});
+
+$("#rows").addEventListener("click", async ev => {
+  const btn = ev.target.closest("button"); if(!btn) return;
+  const tr = btn.closest("tr[data-id]"); const id = tr.dataset.id; const act = btn.dataset.act;
+  try{
+    if(act === "수정"){ openEditors.add(id); renderItems(); tr.parentNode.querySelector(`tr[data-id="${CSS.escape(id)}"] textarea`)?.focus(); return; }
+    if(act === "cancel"){ openEditors.delete(id); renderItems(); return; }
+    if(act === "save"){
+      const edit = tr.querySelector("textarea").value;
+      state = await api("/api/decide", {id, button:"수정", edit}); openEditors.delete(id);
+    } else if(act === "수용" || act === "반려"){
+      state = await api("/api/decide", {id, button:act}); openEditors.delete(id);
+    }
+    $("#err").textContent = ""; render();
+  }catch(e){ $("#err").textContent = e.message; }
+});
+
+refresh();
+setInterval(() => { if(!document.querySelector(".editor.open textarea:focus")) refresh(); }, 1500);
+</script>
+</body>
+</html>

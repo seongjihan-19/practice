@@ -1,0 +1,50 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Users/한성지/AppData/Local/Programs/Python/Python312/python.exe\" 'D:\\L.L.M Academy (AX부트캠프)\\1110 실습\\.codex\\hooks\\log_event.py'",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Users/한성지/AppData/Local/Programs/Python/Python312/python.exe\" 'D:\\L.L.M Academy (AX부트캠프)\\1110 실습\\.codex\\hooks\\log_event.py'",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Users/한성지/AppData/Local/Programs/Python/Python312/python.exe\" 'D:\\L.L.M Academy (AX부트캠프)\\1110 실습\\.codex\\hooks\\log_event.py'",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Users/한성지/AppData/Local/Programs/Python/Python312/python.exe\" 'D:\\L.L.M Academy (AX부트캠프)\\1110 실습\\.codex\\hooks\\log_event.py'",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
